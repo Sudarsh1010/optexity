@@ -1,0 +1,3 @@
+[submodule "external/browser-use"]
+	path = external/browser-use
+	url = https://github.com/browser-use/browser-use.git
