@@ -1,14 +1,11 @@
 import logging
 
-from playwright.async_api import Locator, Page
-
 from optexity.inference.api.infra.browser import Browser
 from optexity.schema.actions.interaction_action import (
     ClickElementAction,
     InputTextAction,
     InteractionAction,
 )
-from optexity.schema.automation import Automation
 from optexity.schema.memory import Memory
 
 logger = logging.getLogger(__name__)

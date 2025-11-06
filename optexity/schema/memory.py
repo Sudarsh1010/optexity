@@ -1,3 +1,4 @@
+from optexity.schema.token_usage import TokenUsage
 from pydantic import BaseModel, Field
 
 
@@ -38,7 +39,7 @@ class BrowserState(BaseModel):
 
 class Variables(BaseModel):
     input_variables: dict[str, list[str]]
-    output_variables: dict = Field(default_factory=dict)
+    output_data: list = Field(default_factory=list)
     generated_variables: dict = Field(default_factory=dict)
 
 
@@ -46,3 +47,4 @@ class Memory(BaseModel):
     variables: Variables
     automation_state: AutomationState = Field(default_factory=AutomationState)
     browser_states: list[BrowserState] = Field(default_factory=list)
+    token_usage: TokenUsage = Field(default_factory=TokenUsage)

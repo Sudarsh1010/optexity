@@ -1,22 +1,22 @@
-import re
+from typing import List, Optional
+
+from pydantic import create_model
 
 
-def replace_variable_name_with_value(
-    text: str | None, input_variables: dict[str, list[str]]
-) -> str | None:
-    if text is None:
-        return None
-    for key, values in input_variables.items():
-        pattern = rf"\{{{re.escape(key)}\[(\d+)\]\}}"
-        matches = re.findall(pattern, text)
-
-        if matches:
-            matches = [int(match) for match in matches]
-            for match in matches:
-                if match >= len(values):
-                    raise ValueError(
-                        f"Input variable {key} has only {len(values)} values. {text} is out of bounds"
-                    )
-
-                text = text.replace(f"{{{key}[{match}]}}", values[match])
-        return text
+def build_model(schema: dict, model_name="AutoModel"):
+    fields = {}
+    for key, value in schema.items():
+        if isinstance(value, str):  # primitive type
+            py_type = eval(value)  # e.g., "str" -> str
+            fields[key] = (Optional[py_type], None)
+        elif isinstance(value, dict):  # nested object
+            sub_model = build_model(value, model_name=f"{model_name}_{key}")
+            fields[key] = (Optional[sub_model], None)
+        elif isinstance(value, list):  # list of objects or primitives
+            if len(value) > 0 and isinstance(value[0], dict):
+                sub_model = build_model(value[0], model_name=f"{model_name}_{key}")
+                fields[key] = (Optional[List[sub_model]], None)
+            else:  # list of primitives
+                py_type = eval(value[0])
+                fields[key] = (Optional[List[py_type]], None)
+    return create_model(model_name, **fields)

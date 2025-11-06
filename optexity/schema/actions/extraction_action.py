@@ -1,13 +1,32 @@
-from typing import Literal, Optional
+from typing import List, Literal, Optional
 
-from pydantic import BaseModel, field_validator, model_validator
+from optexity.utils.utils import build_model
+from pydantic import BaseModel, create_model, field_validator, model_validator
 
 
 class LLMExtraction(BaseModel):
     source: list[Literal["axtree", "screenshot"]]
-    output_format: str | BaseModel
-    extraction_instruction: str
-    ## TODO: add output to memory variables
+    extraction_format: dict
+    extraction_instructions: str
+    output_variable_names: list[str]
+
+    def build_model(self):
+        return build_model(self.extraction_format)
+
+    @field_validator("extraction_format")
+    def validate_extraction_format(cls, v):
+        if isinstance(v, dict):
+            try:
+                build_model(v)
+            except Exception as e:
+                raise ValueError(f"Invalid extraction_format dict: {e}")
+            return v
+        raise ValueError("extraction_format must be either a string or a dict")
+
+    @model_validator(mode="after")
+    def validate_output_var_in_format(self):
+        ## TODO: implement this
+        return self
 
 
 class NetworkCallExtraction(BaseModel):

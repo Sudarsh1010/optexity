@@ -1,7 +1,6 @@
 from typing import Literal
 from uuid import uuid4
 
-from optexity.utils.utils import replace_variable_name_with_value
 from pydantic import BaseModel, model_validator
 
 
