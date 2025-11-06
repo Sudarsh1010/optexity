@@ -37,7 +37,7 @@ class BrowserState(BaseModel):
 
 
 class Variables(BaseModel):
-    input_variables: dict
+    input_variables: dict[str, list[str]]
     output_variables: dict = Field(default_factory=dict)
     generated_variables: dict = Field(default_factory=dict)
 
