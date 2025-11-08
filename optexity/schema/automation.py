@@ -5,9 +5,6 @@ from optexity.schema.actions.misc_action import PythonScriptAction
 from optexity.schema.actions.two_factor_auth_action import Fetch2faAction
 from pydantic import BaseModel, model_validator
 
-# TODO: add a time sleep before extraction action else page might not have loaded yet.
-# this before time is not needed for interaction actions as playwright waits for the page to load before executing the action.
-
 
 class ActionNode(BaseModel):
     interaction_action: InteractionAction | None = None
