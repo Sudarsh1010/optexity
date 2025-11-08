@@ -63,6 +63,7 @@ async def run_automation(automation: Automation, memory: Memory, browser: Browse
                 # elif action_node.assertion_action:
                 #     await browser.run_assertion_action(action_node.assertion_action)
                 elif action_node.extraction_action:
+                    await sleep_for_page_to_load(browser, action_node.before_sleep_time)
                     await run_extraction_action(
                         action_node.extraction_action, memory, browser
                     )
@@ -107,7 +108,7 @@ async def sleep_for_page_to_load(browser: Browser, sleep_time: float):
     if page is None:
         return
     try:
-        await page.wait_for_load_state("domcontentloaded", timeout=sleep_time * 1000)
+        await page.wait_for_load_state("load", timeout=sleep_time * 1000)
     except TimeoutError as e:
         pass
 

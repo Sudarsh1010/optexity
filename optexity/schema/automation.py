@@ -13,6 +13,7 @@ class ActionNode(BaseModel):
     assertion_action: AssertionAction | None = None
     extraction_action: ExtractionAction | None = None
     python_script_action: PythonScriptAction | None = None
+    before_sleep_time: float = 0.0
     end_sleep_time: float = 1.0
     expect_new_tab: bool = False
     max_new_tab_wait_time: float = 10.0
@@ -52,6 +53,9 @@ class ActionNode(BaseModel):
                 or model.python_script_action
                 else 1.0
             )
+
+        if "before_sleep_time" not in user_set:
+            model.before_sleep_time = 3.0 if model.extraction_action else 0.0
 
         if model.expect_new_tab:
             assert (

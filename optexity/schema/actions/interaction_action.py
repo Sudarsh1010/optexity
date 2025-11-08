@@ -21,6 +21,8 @@ class BaseAction(BaseModel):
     xpath: str | None = None
     command: str | None = None
     prompt_instructions: str
+    skip_prompt: bool = False
+    assert_locator_presence: bool = False
 
     @model_validator(mode="after")
     def validate_one_extraction(cls, model: "BaseAction"):
@@ -35,6 +37,11 @@ class BaseAction(BaseModel):
             raise ValueError(
                 "Exactly one of llm, networkcall, or python must be provided"
             )
+
+        if model.assert_locator_presence:
+            assert (
+                model.command is not None
+            ), "command is required when assert_locator_presence is True"
 
         return model
 

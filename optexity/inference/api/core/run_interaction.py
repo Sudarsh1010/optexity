@@ -67,7 +67,10 @@ async def handle_click_element(
         logger.debug(f"Error in click_element_locator: {last_error}")
         logger.debug("Falling back to index locator")
 
-    if click_element_action.prompt_instructions:
+    if (
+        click_element_action.prompt_instructions
+        and not click_element_action.skip_prompt
+    ):
         memory.automation_state.try_index += 1
         try:
             axtree = await browser.get_axtree()
@@ -78,6 +81,11 @@ async def handle_click_element(
             await browser.click_index(index)
             return
         except Exception as e:
+            if click_element_action.assert_locator_presence:
+                logger.debug(
+                    f"Raising error as locator not present and assert_locator_presence is True: {click_element_action.command}"
+                )
+                raise e
             logger.error(f"Error in get_index_from_prompt: {e}")
             logger.debug("Falling back to index locator")
 
@@ -99,7 +107,7 @@ async def handle_input_text(
             logger.debug(f"Error in click_element_locator: {e}")
             logger.debug("Falling back to index locator")
 
-    if input_text_action.prompt_instructions:
+    if input_text_action.prompt_instructions and not input_text_action.skip_prompt:
         memory.automation_state.try_index += 1
         try:
             axtree = await browser.get_axtree()
@@ -108,6 +116,11 @@ async def handle_input_text(
             await browser.input_text_index(index, input_text_action.input_text)
             return
         except Exception as e:
+            if input_text_action.assert_locator_presence:
+                logger.debug(
+                    f"Raising error as locator not present and assert_locator_presence is True: {input_text_action.command}, {input_text_action.input_text}"
+                )
+                raise e
             logger.error(f"Error in get_index_from_prompt: {e}")
             logger.debug("Falling back to index locator")
 
@@ -124,6 +137,11 @@ async def handle_select_option(
             await locator.select_option(select_option_action.select_values)
             return
         except Exception as e:
+            if select_option_action.assert_locator_presence:
+                logger.debug(
+                    f"Raising error as locator not present and assert_locator_presence is True: {select_option_action.command}, {select_option_action.select_values}"
+                )
+                raise e
             logger.debug(f"Error in select_option_locator: {e}")
             logger.debug("Falling back to index locator")
 

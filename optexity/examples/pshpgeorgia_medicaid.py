@@ -121,7 +121,6 @@ pshpgeorgia_medicaid_test = Automation(
                     prompt_instructions="Click the Authorizations link",
                 )
             ),
-            end_sleep_time=5,
         ),
         ActionNode(
             extraction_action=ExtractionAction(
@@ -145,7 +144,6 @@ pshpgeorgia_medicaid_test = Automation(
                             prompt_instructions="Click the Authorizations link for the authorization number {authorization_numbers[index]}",
                         )
                     ),
-                    end_sleep_time=5,
                 ),
                 ActionNode(
                     extraction_action=ExtractionAction(
