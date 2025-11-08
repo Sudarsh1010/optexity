@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from optexity.inference.api.infra.browser import Browser
@@ -37,23 +38,29 @@ async def run_interaction_action(
 async def handle_click_element(
     click_element_action: ClickElementAction, memory: Memory, browser: Browser
 ):
+    max_tries = 10
+    max_timeout_per_try = 1
     if click_element_action.command:
-        try:
-            locator = await browser.get_locator_from_command(
-                click_element_action.command
-            )
-            if click_element_action.double_click:
-                await locator.dblclick()
-            else:
-                await locator.click()
+        for try_index in range(max_tries):
+            try:
+                locator = await browser.get_locator_from_command(
+                    click_element_action.command
+                )
+                if click_element_action.double_click:
+                    await locator.dblclick()
+                else:
+                    await locator.click(timeout=max_timeout_per_try * 1000)
 
-            # if download_filename:
-            #     await self.expect_download(download_filename)
+                # if download_filename:
+                #     await self.expect_download(download_filename)
+                asyncio.sleep(max_timeout_per_try)
+                logger.debug(f"Click element successful after {try_index + 1} tries")
+                return
+            except Exception as e:
+                last_error = e
 
-            return
-        except Exception as e:
-            logger.debug(f"Error in click_element_locator: {e}")
-            logger.debug("Falling back to index locator")
+        logger.debug(f"Error in click_element_locator: {last_error}")
+        logger.debug("Falling back to index locator")
 
     if click_element_action.prompt_instructions:
         memory.automation_state.try_index += 1

@@ -4,6 +4,9 @@ from optexity.schema.actions.interaction_action import InteractionAction
 from optexity.schema.actions.misc_action import PythonScriptAction
 from pydantic import BaseModel, model_validator
 
+# TODO: add a time sleep before extraction action else page might not have loaded yet.
+# this before time is not needed for interaction actions as playwright waits for the page to load before executing the action.
+
 
 class ActionNode(BaseModel):
     interaction_action: InteractionAction | None = None
@@ -11,6 +14,8 @@ class ActionNode(BaseModel):
     extraction_action: ExtractionAction | None = None
     python_script_action: PythonScriptAction | None = None
     end_sleep_time: float = 1.0
+    expect_new_tab: bool = False
+    max_new_tab_wait_time: float = 10.0
 
     @model_validator(mode="after")
     def validate_one_node(cls, model: "ActionNode"):
@@ -28,7 +33,32 @@ class ActionNode(BaseModel):
                 "Exactly one of interaction_action, assertion_action, extraction_action, or python_script_action must be provided"
             )
 
-        assert model.end_sleep_time >= 0, "end_sleep_time must be greater than 0"
+        assert (
+            model.end_sleep_time >= 0 and model.end_sleep_time <= 10
+        ), "end_sleep_time must be greater than 0 and less than 10"
+        assert (
+            model.max_new_tab_wait_time >= 0 and model.max_new_tab_wait_time <= 10
+        ), "max_new_tab_wait_time must be greater than 0 and less than 10"
+
+        # --- Adjust defaults only if user didn't override them ---
+        # We detect user-provided fields using model.__pydantic_fields_set__
+        user_set = model.__pydantic_fields_set__
+
+        if "end_sleep_time" not in user_set:
+            model.end_sleep_time = (
+                0.0
+                if model.assertion_action
+                or model.extraction_action
+                or model.python_script_action
+                else 1.0
+            )
+
+        if model.expect_new_tab:
+            assert (
+                model.interaction_action is not None
+            ), "expect_new_tab is only allowed for interaction actions"
+        else:
+            model.max_new_tab_wait_time = 0.0
 
         return model
 

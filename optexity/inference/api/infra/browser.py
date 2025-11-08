@@ -1,11 +1,15 @@
+import asyncio
 import logging
+import time
 from typing import Literal
 from uuid import uuid4
 
+import aiofiles
 from playwright.async_api import Locator, Page
 
 from browser_use import Agent, BrowserSession, ChatGoogle
 from browser_use.agent.views import AgentStepInfo
+from optexity.utils.utils import save_screenshot
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +40,9 @@ class Browser:
         self.page = None
         self.cdp_url = f"http://localhost:{self.debug_port}"
         self.backend_agent = None
+
+        self.page_to_target_id = []
+        self.previous_total_pages = 0
 
     async def start(self):
         logger.debug("Starting browser")
@@ -100,7 +107,34 @@ class Browser:
             self.page = await self.context.new_page()
         else:
             self.page = pages[-1]
+
         return self.page
+
+    async def handle_new_tabs(self, max_wait_time: float) -> bool:
+
+        total_time = 0
+        while total_time < max_wait_time:
+            pages = self.context.pages
+            if len(pages) > self.previous_total_pages:
+                break
+            await asyncio.sleep(1)
+            total_time += 1
+
+        pages = self.context.pages
+        if len(pages) == self.previous_total_pages:
+            return False, total_time
+
+        tabs = await self.backend_agent.browser_session.get_tabs()
+
+        for tab in tabs[::-1]:
+            if tab.target_id not in self.page_to_target_id:
+                self.page_to_target_id.append(tab.target_id)
+        self.previous_total_pages = len(pages)
+
+        tab_id = self.page_to_target_id[-1][-4:]
+        action_model = self.backend_agent.ActionModel(**{"switch": {"tab_id": tab_id}})
+        await self.backend_agent.multi_act([action_model])
+        return True, total_time
 
     async def get_locator_from_command(self, command: str) -> Locator:
         page = await self.get_current_page()
@@ -110,9 +144,18 @@ class Browser:
         return locator
 
     async def get_axtree(self) -> str:
-        step_info = AgentStepInfo(step_number=0, max_steps=100)
-        browser_state_summary = await self.backend_agent._prepare_context(step_info)
+        # step_info = AgentStepInfo(step_number=0, max_steps=100)
+        # browser_state_summary = await self.backend_agent._prepare_context(step_info)
+        browser_state_summary = await self.backend_agent.browser_session.get_browser_state_summary(
+            include_screenshot=True,  # always capture even if use_vision=False so that cloud sync is useful (it's fast now anyway)
+            include_recent_events=self.backend_agent.include_recent_events,
+        )
+        save_screenshot(browser_state_summary.screenshot, "screenshot.png")
+
         llm_representation = browser_state_summary.dom_state.llm_representation()
+        async with aiofiles.open("axtree.txt", "w") as f:
+            await f.write(llm_representation)
+
         return llm_representation
 
     def get_xpath_from_index(self, index: int) -> str:

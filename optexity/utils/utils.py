@@ -1,3 +1,4 @@
+import base64
 from typing import List, Optional
 
 from pydantic import create_model
@@ -20,3 +21,8 @@ def build_model(schema: dict, model_name="AutoModel"):
                 py_type = eval(value[0])
                 fields[key] = (Optional[List[py_type]], None)
     return create_model(model_name, **fields)
+
+
+def save_screenshot(screenshot: str, path: str):
+    with open(path, "wb") as f:
+        f.write(base64.b64decode(screenshot))

@@ -79,7 +79,6 @@ pshpgeorgia_medicaid_test = Automation(
                     prompt_instructions="Enter the Member ID or Last Name",
                 )
             ),
-            end_sleep_time=0,
         ),
         ActionNode(
             interaction_action=InteractionAction(
@@ -89,7 +88,6 @@ pshpgeorgia_medicaid_test = Automation(
                     prompt_instructions="Enter the Date of Birth",
                 )
             ),
-            end_sleep_time=0,
         ),
         ActionNode(
             interaction_action=InteractionAction(
@@ -114,7 +112,7 @@ pshpgeorgia_medicaid_test = Automation(
                     prompt_instructions="Click the Submit button",
                 )
             ),
-            end_sleep_time=5,
+            expect_new_tab=True,
         ),
         ActionNode(
             interaction_action=InteractionAction(
@@ -122,7 +120,7 @@ pshpgeorgia_medicaid_test = Automation(
                     command="""get_by_label("Eligibility", exact=True).get_by_role("link", name="Authorizations")""",
                     prompt_instructions="Click the Authorizations link",
                 )
-            )
+            ),
         ),
         ActionNode(
             extraction_action=ExtractionAction(
@@ -131,11 +129,10 @@ pshpgeorgia_medicaid_test = Automation(
                     extraction_format={
                         "authorization_numbers": "list[str]",
                     },
-                    extraction_instructions="Extract the authorization number",
+                    extraction_instructions="Extract the authorization numbers from the page",
                     output_variable_names=["authorization_numbers"],
                 )
             ),
-            end_sleep_time=0,
         ),
         ForLoopNode(
             variable_name="authorization_numbers",
