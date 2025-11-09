@@ -48,78 +48,8 @@ async def run_automation(automation: Automation, memory: Memory, browser: Browse
             action_nodes = [node]
 
         for action_node in action_nodes:
-            await sleep_for_page_to_load(browser, action_node.before_sleep_time)
-            await browser.handle_new_tabs(0)
-
-            memory.automation_state.step_index += 1
-            memory.automation_state.try_index = 0
-
-            action_node.replace_variables(memory.variables.input_variables)
-            action_node.replace_variables(memory.variables.generated_variables)
-
-            ## TODO: optimize this by taking screenshot and axtree only if needed
-            browser_state_summary = await browser.get_browser_state_summary()
-
-            memory.browser_states.append(
-                BrowserState(
-                    url=browser_state_summary.url,
-                    screenshot=browser_state_summary.screenshot,
-                    title=browser_state_summary.title,
-                    axtree=browser_state_summary.dom_state.llm_representation(),
-                )
-            )
-            logger.debug(f"-----Running node {memory.automation_state.step_index}-----")
-
             full_automation.append(action_node.model_dump())
-
-            try:
-                if action_node.interaction_action:
-                    await browser.clear_network_calls()
-                    await browser.attach_network_listeners()
-
-                    await run_interaction_action(
-                        action_node.interaction_action, memory, browser
-                    )
-                elif action_node.extraction_action:
-                    await run_extraction_action(
-                        action_node.extraction_action, memory, browser
-                    )
-                elif action_node.fetch_2fa_action:
-                    await run_2fa_action(action_node.fetch_2fa_action, memory, browser)
-                elif action_node.python_script_action:
-                    await run_python_script_action(
-                        action_node.python_script_action, memory, browser
-                    )
-
-            except Exception as e:
-                logger.error(
-                    f"Error running node {memory.automation_state.step_index}: {e}"
-                )
-                raise e
-            finally:
-
-                await save_memory_state(
-                    memory, action_node, memory.automation_state.step_index
-                )
-            if action_node.expect_new_tab:
-                found_new_tab, total_time = await browser.handle_new_tabs(
-                    action_node.max_new_tab_wait_time
-                )
-                if not found_new_tab:
-                    logger.warning(
-                        f"No new tab found after {action_node.max_new_tab_wait_time} seconds, even though expect_new_tab is True"
-                    )
-                else:
-                    logger.debug(
-                        f"Switched to new tab after {total_time} seconds, as expected"
-                    )
-
-            else:
-                await sleep_for_page_to_load(browser, action_node.end_sleep_time)
-
-            logger.debug(
-                f"-----Finished node {memory.automation_state.step_index}-----"
-            )
+            await run_automation_node(action_node, memory, browser)
 
     memory.automation_state.step_index += 1
     browser_state_summary = await browser.get_browser_state_summary()
@@ -135,6 +65,72 @@ async def run_automation(automation: Automation, memory: Memory, browser: Browse
     await save_memory_state(memory, None, memory.automation_state.step_index)
 
     logging.getLogger("optexity").removeHandler(file_handler)
+
+
+async def run_automation_node(
+    action_node: ActionNode, memory: Memory, browser: Browser
+):
+
+    await sleep_for_page_to_load(browser, action_node.before_sleep_time)
+    await browser.handle_new_tabs(0)
+
+    memory.automation_state.step_index += 1
+    memory.automation_state.try_index = 0
+
+    action_node.replace_variables(memory.variables.input_variables)
+    action_node.replace_variables(memory.variables.generated_variables)
+
+    ## TODO: optimize this by taking screenshot and axtree only if needed
+    browser_state_summary = await browser.get_browser_state_summary()
+
+    memory.browser_states.append(
+        BrowserState(
+            url=browser_state_summary.url,
+            screenshot=browser_state_summary.screenshot,
+            title=browser_state_summary.title,
+            axtree=browser_state_summary.dom_state.llm_representation(),
+        )
+    )
+    logger.debug(f"-----Running node {memory.automation_state.step_index}-----")
+
+    try:
+        if action_node.interaction_action:
+            await browser.clear_network_calls()
+            await browser.attach_network_listeners()
+
+            await run_interaction_action(
+                action_node.interaction_action, memory, browser
+            )
+        elif action_node.extraction_action:
+            await run_extraction_action(action_node.extraction_action, memory, browser)
+        elif action_node.fetch_2fa_action:
+            await run_2fa_action(action_node.fetch_2fa_action, memory, browser)
+        elif action_node.python_script_action:
+            await run_python_script_action(
+                action_node.python_script_action, memory, browser
+            )
+
+    except Exception as e:
+        logger.error(f"Error running node {memory.automation_state.step_index}: {e}")
+        raise e
+    finally:
+
+        await save_memory_state(memory, action_node, memory.automation_state.step_index)
+    if action_node.expect_new_tab:
+        found_new_tab, total_time = await browser.handle_new_tabs(
+            action_node.max_new_tab_wait_time
+        )
+        if not found_new_tab:
+            logger.warning(
+                f"No new tab found after {action_node.max_new_tab_wait_time} seconds, even though expect_new_tab is True"
+            )
+        else:
+            logger.debug(f"Switched to new tab after {total_time} seconds, as expected")
+
+    else:
+        await sleep_for_page_to_load(browser, action_node.end_sleep_time)
+
+    logger.debug(f"-----Finished node {memory.automation_state.step_index}-----")
 
 
 async def save_memory_state(memory: Memory, node: ActionNode | None, step_index: int):
