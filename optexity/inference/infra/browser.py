@@ -1,11 +1,13 @@
 import asyncio
+import json
 import logging
 from typing import Literal
 
-from playwright.async_api import Locator
+from playwright.async_api import Locator, Response
 
 from browser_use import Agent, BrowserSession, ChatGoogle
 from browser_use.browser.views import BrowserStateSummary
+from optexity.schema.memory import NetworkResponse
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +41,8 @@ class Browser:
 
         self.page_to_target_id = []
         self.previous_total_pages = 0
+
+        self.network_calls: list[NetworkResponse] = []
 
     async def start(self):
         logger.debug("Starting browser")
@@ -184,3 +188,62 @@ class Browser:
         if page is None:
             return None
         return page.url
+
+    async def attach_network_listeners(self):
+        page = await self.get_current_page()
+
+        # remove old listeners first
+        try:
+            page.remove_listener("response", self._on_response)
+        except Exception:
+            pass
+
+        page.on("response", self._on_response)
+
+    async def detach_network_listeners(self):
+        page = await self.get_current_page()
+        try:
+            page.remove_listener("response", self._on_response)
+        except Exception:
+            pass
+
+    async def _on_response(self, response: Response):
+        try:
+            body = await response.json()
+        except Exception:
+            try:
+                body = await response.text()
+            except Exception:
+                body = None
+
+        # Try to enrich response with request method and content length
+        method = None
+        try:
+            # Playwright provides request object for a response
+            method = response.request.method
+        except Exception:
+            pass
+
+        content_length = 0
+        try:
+            if body is not None:
+                if isinstance(body, (str, bytes)):
+                    content_length = len(body)
+                elif isinstance(body, dict):
+                    content_length = len(json.dumps(body))
+        except Exception:
+            pass
+
+        self.network_calls.append(
+            NetworkResponse(
+                url=response.url,
+                method=method,
+                status=response.status,
+                headers=response.headers,
+                body=body,
+                content_length=content_length,
+            )
+        )
+
+    async def clear_network_calls(self):
+        self.network_calls.clear()

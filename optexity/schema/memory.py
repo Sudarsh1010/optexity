@@ -23,7 +23,9 @@ class NetworkResponse(BaseModel):
     url: str = Field(...)
     status: int = Field(...)
     headers: dict = Field(...)
-    body: str = Field(...)
+    body: dict | str | None = Field(default=None)
+    method: str = Field(...)
+    content_length: int = Field(...)
 
 
 class AutomationState(BaseModel):
@@ -38,6 +40,8 @@ class BrowserState(BaseModel):
     screenshot: str | None = Field(default=None)
     html: str | None = Field(default=None)
     axtree: str | None = Field(default=None)
+    final_prompt: str | None = Field(default=None)
+    llm_response: str | dict | None = Field(default=None)
 
 
 class Variables(BaseModel):

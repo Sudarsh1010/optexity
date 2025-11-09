@@ -103,13 +103,15 @@ async def prompt_based_action(
         return
     memory.automation_state.try_index += 1
     axtree = memory.browser_states[-1].axtree
+
     try:
-        index, token_usage = index_prediction_agent.predict_action(
+        final_prompt, response, token_usage = index_prediction_agent.predict_action(
             prompt_instructions, axtree
         )
         memory.token_usage += token_usage
-        memory.variables.output_data.append(index)
-        await func(index)
+        memory.browser_states[-1].final_prompt = final_prompt
+        memory.browser_states[-1].llm_response = response.model_dump()
+        await func(response.index)
     except Exception as e:
         logger.error(f"Error in prompt_based_action for {func.__name__}: {e}")
         return

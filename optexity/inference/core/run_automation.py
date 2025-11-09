@@ -74,6 +74,9 @@ async def run_automation(automation: Automation, memory: Memory, browser: Browse
 
             try:
                 if action_node.interaction_action:
+                    await browser.clear_network_calls()
+                    await browser.attach_network_listeners()
+
                     await run_interaction_action(
                         action_node.interaction_action, memory, browser
                     )
@@ -152,6 +155,7 @@ async def save_memory_state(memory: Memory, node: ActionNode | None, step_index:
         "downloaded_files": [
             downloaded_file.name for downloaded_file in memory.downloaded_files
         ],
+        "token_usage": memory.token_usage.model_dump(),
     }
 
     async with aiofiles.open(step_directory / "state.json", "w") as f:
@@ -160,6 +164,14 @@ async def save_memory_state(memory: Memory, node: ActionNode | None, step_index:
     if browser_state.axtree:
         async with aiofiles.open(step_directory / "axtree.txt", "w") as f:
             await f.write(browser_state.axtree)
+
+    if browser_state.final_prompt:
+        async with aiofiles.open(step_directory / "final_prompt.txt", "w") as f:
+            await f.write(browser_state.final_prompt)
+
+    if browser_state.llm_response:
+        async with aiofiles.open(step_directory / "llm_response.json", "w") as f:
+            await f.write(json.dumps(browser_state.llm_response, indent=4))
 
     if node:
         async with aiofiles.open(step_directory / "action_node.json", "w") as f:
