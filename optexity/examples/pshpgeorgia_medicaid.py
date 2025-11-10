@@ -191,3 +191,6 @@ pshpgeorgia_medicaid_test = Automation(
         ),
     ],
 )
+
+# a = pshpgeorgia_login_test.model_dump_json(indent=4)
+# b = Automation.model_validate_json(a)

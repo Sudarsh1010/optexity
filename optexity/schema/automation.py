@@ -50,7 +50,6 @@ class ActionNode(BaseModel):
                 0.0
                 if model.assertion_action
                 or model.extraction_action
-                or model.python_script_action
                 or model.fetch_2fa_action
                 else 1.0
             )

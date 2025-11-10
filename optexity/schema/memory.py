@@ -1,5 +1,6 @@
 import uuid
 from pathlib import Path
+from typing import Any
 
 from optexity.schema.token_usage import TokenUsage
 from pydantic import BaseModel, Field, model_validator
@@ -23,7 +24,7 @@ class NetworkResponse(BaseModel):
     url: str = Field(...)
     status: int = Field(...)
     headers: dict = Field(...)
-    body: dict | str | None = Field(default=None)
+    body: dict | str | None | bytes | Any = Field(default=None)
     method: str = Field(...)
     content_length: int = Field(...)
 

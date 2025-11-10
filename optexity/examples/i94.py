@@ -26,7 +26,6 @@ i94_test = Automation(
     ),
     nodes=[
         ActionNode(
-            before_sleep_time=5.0,
             python_script_action=PythonScriptAction(
                 execution_code="""async def code_fn(page):\n    print(\"entering code_fn\")\n    await page.evaluate(\n        \"\"\"  const el = document.querySelector('mat-dialog-content');  if (el) el.scrollTop = el.scrollHeight;\"\"\"\n    )\n    print(\"exiting code_fn\")\n"""
             ),
