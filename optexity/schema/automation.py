@@ -15,7 +15,7 @@ class ActionNode(BaseModel):
     before_sleep_time: float = 0.0
     end_sleep_time: float = 1.0
     expect_new_tab: bool = False
-    max_new_tab_wait_time: float = 10.0
+    max_new_tab_wait_time: float = 0.0
 
     @model_validator(mode="after")
     def validate_one_node(cls, model: "ActionNode"):
@@ -61,6 +61,7 @@ class ActionNode(BaseModel):
             assert (
                 model.interaction_action is not None
             ), "expect_new_tab is only allowed for interaction actions"
+            model.max_new_tab_wait_time = 10.0
         else:
             model.max_new_tab_wait_time = 0.0
 

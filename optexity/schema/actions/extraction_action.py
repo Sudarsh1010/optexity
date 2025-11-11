@@ -5,7 +5,7 @@ from pydantic import BaseModel, field_validator, model_validator
 
 
 class LLMExtraction(BaseModel):
-    source: list[Literal["axtree", "screenshot"]]
+    source: list[Literal["axtree", "screenshot"]] = ["axtree"]
     extraction_format: dict
     extraction_instructions: str
     output_variable_names: list[str] | None = None
