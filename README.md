@@ -35,3 +35,13 @@ pre-commit install --hook-type pre-push
 ```
 
 Running manual pre-commit check `pre-commit install --hook-type pre-push`
+
+## Running inference
+
+```
+python main.py \
+  --api-key "API_KEY" \
+  --base-url http://localhost:8000 \
+  --host 0.0.0.0 \
+  --port 8001
+```
