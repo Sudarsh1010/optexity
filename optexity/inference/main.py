@@ -73,7 +73,7 @@ class Task:
     unique_parameters: list[str] = field(default_factory=list)
 
     status: TaskStatus = TaskStatus.QUEUED
-    created_at: datetime = field(default_factory=datetime.now)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     result: Optional[Dict[str, Any]] = None
@@ -159,10 +159,9 @@ async def execute_automation_task(task: Task):
     memory = Memory(
         variables=Variables(
             input_variables=formatted_variables,
-            unique_parameters=task.unique_parameters,
+            unique_parameter_names=task.unique_parameters,
         ),
         recording_id=task.recording_id,
-        task_id=task.task_id,
         created_at=task.created_at,
     )
     browser = Browser(headless=False)

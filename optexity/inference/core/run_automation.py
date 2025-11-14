@@ -1,15 +1,11 @@
 import asyncio
-import base64
-import json
 import logging
 from copy import deepcopy
-from pathlib import Path
-
-import aiofiles
 
 from optexity.inference.core.logging import (
     complete_task_in_server,
     save_downloads_in_server,
+    save_memory_state_locally,
     save_output_data_in_server,
     save_trajectory_in_server,
     start_task_in_server,
@@ -19,9 +15,9 @@ from optexity.inference.core.run_extraction import run_extraction_action
 from optexity.inference.core.run_interaction import run_interaction_action
 from optexity.inference.core.run_python_script import run_python_script_action
 from optexity.inference.infra.browser import Browser
-from optexity.schema.automation import ActionNode, Automation, ForLoopNode, IfElseNode
-from optexity.schema.memory import BrowserState, Memory
-from optexity.utils.utils import save_screenshot
+from optexity.schema.automation import ActionNode, ForLoopNode, IfElseNode
+from optexity.schema.memory import BrowserState, Memory, Variables
+from optexity.schema.task import Task
 
 logger = logging.getLogger(__name__)
 
@@ -34,24 +30,29 @@ logger = logging.getLogger(__name__)
 # TODO: give a warning where any variable of type {variable_name[index]} is used but variable_name is not in the memory in generated variables or in input variables
 
 
-async def run_automation(automation: Automation, memory: Memory, browser: Browser):
-    await start_task_in_server(memory)
-
-    file_handler = logging.FileHandler(str(memory.log_file_path))
+async def run_automation(task: Task):
+    file_handler = logging.FileHandler(str(task.log_file_path))
     file_handler.setLevel(logging.DEBUG)
 
     current_module = __name__.split(".")[0]  # top-level module/package
     logging.getLogger(current_module).addHandler(file_handler)
     logging.getLogger("browser_use").setLevel(logging.INFO)
 
-    logger.info(f"Running automation for task {memory.task_id}")
-
-    memory.automation_state.step_index = -1
-    memory.automation_state.try_index = 0
-
-    full_automation = []
+    logger.info(f"Task {task.task_id} started running")
 
     try:
+        await start_task_in_server(task)
+        memory = Memory(variables=Variables(input_variables=task.input_parameters))
+        browser = Browser(headless=False)
+        await browser.start()
+
+        automation = task.automation
+
+        memory.automation_state.step_index = -1
+        memory.automation_state.try_index = 0
+
+        full_automation = []
+
         for node in automation.nodes:
             if isinstance(node, ForLoopNode):
                 action_nodes = expand_for_loop_node(node, memory)
@@ -69,37 +70,40 @@ async def run_automation(automation: Automation, memory: Memory, browser: Browse
             for action_node in action_nodes:
                 full_automation.append(action_node.model_dump())
                 await run_automation_node(action_node, memory, browser)
-
-        memory.status = "success"
+        task.status = "success"
     except Exception as e:
-        memory.status = "failed"
-        memory.error = str(e)
+        task.error = str(e)
+        task.status = "failed"
+    finally:
+        await complete_task_in_server(task, memory.token_usage)
 
-    memory.automation_state.step_index += 1
-    browser_state_summary = await browser.get_browser_state_summary()
-    memory.browser_states.append(
-        BrowserState(
-            url=browser_state_summary.url,
-            screenshot=browser_state_summary.screenshot,
-            title=browser_state_summary.title,
-            axtree=browser_state_summary.dom_state.llm_representation(),
+        memory.automation_state.step_index += 1
+        browser_state_summary = await browser.get_browser_state_summary()
+        memory.browser_states.append(
+            BrowserState(
+                url=browser_state_summary.url,
+                screenshot=browser_state_summary.screenshot,
+                title=browser_state_summary.title,
+                axtree=browser_state_summary.dom_state.llm_representation(),
+            )
         )
-    )
 
-    memory.final_screenshot = await browser.get_screenshot(full_page=True)
+        memory.final_screenshot = await browser.get_screenshot(full_page=True)
 
-    await complete_task_in_server(memory)
-    await save_output_data_in_server(memory)
-    await save_downloads_in_server(memory)
-    await save_trajectory_in_server(memory)
+        await save_output_data_in_server(task, memory)
+        await save_downloads_in_server(task, memory)
+        await save_trajectory_in_server(task, memory)
+        await save_memory_state_locally(task, memory, None)
 
-    await save_memory_state(memory, None)
+        if browser:
+            await browser.stop()
 
+    logger.info(f"Task {task.task_id} completed with status {task.status}")
     logging.getLogger(current_module).removeHandler(file_handler)
 
 
 async def run_automation_node(
-    action_node: ActionNode, memory: Memory, browser: Browser
+    action_node: ActionNode, task: Task, memory: Memory, browser: Browser
 ):
 
     await asyncio.sleep(action_node.before_sleep_time)
@@ -146,7 +150,7 @@ async def run_automation_node(
         logger.error(f"Error running node {memory.automation_state.step_index}: {e}")
         raise e
     finally:
-        await save_memory_state(memory, action_node)
+        await save_memory_state_locally(task, memory, action_node)
 
     if action_node.expect_new_tab:
         found_new_tab, total_time = await browser.handle_new_tabs(
@@ -163,76 +167,6 @@ async def run_automation_node(
         await sleep_for_page_to_load(browser, action_node.end_sleep_time)
 
     logger.debug(f"-----Finished node {memory.automation_state.step_index}-----")
-
-
-async def save_memory_state(memory: Memory, node: ActionNode | None):
-
-    browser_state = memory.browser_states[-1]
-    automation_state = memory.automation_state
-    step_directory = memory.logs_directory / f"step_{str(automation_state.step_index)}"
-    step_directory.mkdir(parents=True, exist_ok=True)
-
-    save_screenshot(browser_state.screenshot, step_directory / "screenshot.png")
-
-    state_dict = {
-        "title": browser_state.title,
-        "url": browser_state.url,
-        "step_index": automation_state.step_index,
-        "try_index": automation_state.try_index,
-        "downloaded_files": [
-            downloaded_file.name for downloaded_file in memory.downloads
-        ],
-        "token_usage": memory.token_usage.model_dump(),
-    }
-
-    async with aiofiles.open(step_directory / "state.json", "w") as f:
-        await f.write(json.dumps(state_dict, indent=4))
-
-    if browser_state.axtree:
-        async with aiofiles.open(step_directory / "axtree.txt", "w") as f:
-            await f.write(browser_state.axtree)
-
-    if browser_state.final_prompt:
-        async with aiofiles.open(step_directory / "final_prompt.txt", "w") as f:
-            await f.write(browser_state.final_prompt)
-
-    if browser_state.llm_response:
-        async with aiofiles.open(step_directory / "llm_response.json", "w") as f:
-            await f.write(json.dumps(browser_state.llm_response, indent=4))
-
-    if node:
-        async with aiofiles.open(step_directory / "action_node.json", "w") as f:
-            await f.write(json.dumps(node.model_dump(), indent=4))
-
-    async with aiofiles.open(step_directory / "input_variables.json", "w") as f:
-        await f.write(json.dumps(memory.variables.input_variables, indent=4))
-
-    async with aiofiles.open(step_directory / "generated_variables.json", "w") as f:
-        await f.write(json.dumps(memory.variables.generated_variables, indent=4))
-
-    async with aiofiles.open(step_directory / "output_data.json", "w") as f:
-        await f.write(
-            json.dumps(
-                [
-                    output_data.model_dump(exclude_none=True, exclude={"screenshot"})
-                    for output_data in memory.variables.output_data
-                ],
-                indent=4,
-            )
-        )
-
-    for output_data in memory.variables.output_data:
-        if output_data.screenshot:
-            async with aiofiles.open(
-                step_directory / f"screenshot_{output_data.screenshot.filename}.png",
-                "wb",
-            ) as f:
-                await f.write(base64.b64decode(output_data.screenshot.base64))
-
-
-async def save_automation(automation: Automation, save_directory: Path):
-    async with aiofiles.open(save_directory / "automation.json", "w") as f:
-        await f.write(json.dumps(automation.model_dump(), indent=4))
 
 
 async def sleep_for_page_to_load(browser: Browser, sleep_time: float):

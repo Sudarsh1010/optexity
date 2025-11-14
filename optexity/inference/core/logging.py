@@ -1,13 +1,20 @@
+import base64
 import io
+import json
 import tarfile
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urljoin
 
+import aiofiles
 import httpx
 
+from optexity.schema.automation import ActionNode
 from optexity.schema.memory import Memory
+from optexity.schema.task import Task
+from optexity.schema.token_usage import TokenUsage
 from optexity.utils.settings import settings
+from optexity.utils.utils import save_screenshot
 
 
 def create_tar_in_memory(directory: Path | str, name: str) -> io.BytesIO:
@@ -20,23 +27,16 @@ def create_tar_in_memory(directory: Path | str, name: str) -> io.BytesIO:
     return tar_bytes
 
 
-async def create_task_in_server(
-    task_id: str,
-    recording_id: str,
-    input_parameters: dict,
-    unique_parameters: dict,
-    created_at: datetime,
-):
+async def create_task_in_server(task: Task):
     url = urljoin(settings.SERVER_URL, settings.CREATE_TASK_ENDPOINT)
     headers = {"x-api-key": settings.API_KEY}
     body = {
-        "task_id": task_id,
-        "recording_id": recording_id,
-        "input_parameters": input_parameters,
-        "unique_parameters": unique_parameters,
-        "created_at": created_at.isoformat(),
+        "task_id": task.task_id,
+        "recording_id": task.recording_id,
+        "input_parameters": task.input_parameters,
+        "unique_parameters": task.unique_parameters,
+        "created_at": task.created_at.isoformat(),
     }
-    print(body)
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.post(
             url,
@@ -55,15 +55,15 @@ async def create_task_in_server(
             raise ValueError(f"Failed to create task in server: {e}")
 
 
-async def start_task_in_server(memory: Memory):
-    memory.started_at = datetime.now(timezone.utc)
-    memory.status = "running"
+async def start_task_in_server(task: Task):
+    task.started_at = datetime.now(timezone.utc)
+    task.status = "running"
 
     url = urljoin(settings.SERVER_URL, settings.START_TASK_ENDPOINT)
     headers = {"x-api-key": settings.API_KEY}
     body = {
-        "task_id": memory.task_id,
-        "started_at": memory.started_at.isoformat(),
+        "task_id": task.task_id,
+        "started_at": task.started_at.isoformat(),
     }
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.post(
@@ -83,17 +83,17 @@ async def start_task_in_server(memory: Memory):
             raise ValueError(f"Failed to start task in server: {e}")
 
 
-async def complete_task_in_server(memory: Memory):
-    memory.completed_at = datetime.now(timezone.utc)
+async def complete_task_in_server(task: Task, token_usage: TokenUsage):
+    task.completed_at = datetime.now(timezone.utc)
 
     url = urljoin(settings.SERVER_URL, settings.COMPLETE_TASK_ENDPOINT)
     headers = {"x-api-key": settings.API_KEY}
     body = {
-        "task_id": memory.task_id,
-        "completed_at": memory.completed_at.isoformat(),
-        "status": "success" if memory.status == "success" else "failed",
-        "error": memory.error,
-        "token_usage": memory.token_usage.model_dump(exclude_none=True),
+        "task_id": task.task_id,
+        "completed_at": task.completed_at.isoformat(),
+        "status": task.status,
+        "error": task.error,
+        "token_usage": token_usage.model_dump(exclude_none=True),
     }
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.post(
@@ -113,7 +113,7 @@ async def complete_task_in_server(memory: Memory):
             raise ValueError(f"Failed to complete task in server: {e}")
 
 
-async def save_output_data_in_server(memory: Memory):
+async def save_output_data_in_server(task: Task, memory: Memory):
     if len(memory.variables.output_data) == 0 and memory.final_screenshot is None:
         return
 
@@ -125,7 +125,7 @@ async def save_output_data_in_server(memory: Memory):
         for output_data in memory.variables.output_data
     ]
     body = {
-        "task_id": memory.task_id,
+        "task_id": task.task_id,
         "output_data": output_data,
         "final_screenshot": memory.final_screenshot,
     }
@@ -148,7 +148,7 @@ async def save_output_data_in_server(memory: Memory):
             raise ValueError(f"Failed to save output data in server: {e}")
 
 
-async def save_downloads_in_server(memory: Memory):
+async def save_downloads_in_server(task: Task, memory: Memory):
     if len(memory.downloads) == 0:
         return
 
@@ -156,13 +156,13 @@ async def save_downloads_in_server(memory: Memory):
     headers = {"x-api-key": settings.API_KEY}
 
     data = {
-        "task_id": memory.task_id,  # form field
+        "task_id": task.task_id,  # form field
     }
 
-    tar_bytes = create_tar_in_memory(memory.downloads_directory, memory.task_id)
+    tar_bytes = create_tar_in_memory(task.downloads_directory, task.task_id)
     files = {
         "compressed_downloads": (
-            f"{memory.task_id}.tar.gz",
+            f"{task.task_id}.tar.gz",
             tar_bytes,
             "application/gzip",
         )
@@ -181,18 +181,18 @@ async def save_downloads_in_server(memory: Memory):
             raise ValueError(f"Failed to save downloads in server: {e}")
 
 
-async def save_trajectory_in_server(memory: Memory):
+async def save_trajectory_in_server(task: Task, memory: Memory):
     url = urljoin(settings.SERVER_URL, settings.SAVE_TRAJECTORY_ENDPOINT)
     headers = {"x-api-key": settings.API_KEY}
 
     data = {
-        "task_id": memory.task_id,  # form field
+        "task_id": task.task_id,  # form field
     }
 
-    tar_bytes = create_tar_in_memory(memory.task_directory, memory.task_id)
+    tar_bytes = create_tar_in_memory(task.task_directory, task.task_id)
     files = {
         "compressed_trajectory": (
-            f"{memory.task_id}.tar.gz",
+            f"{task.task_id}.tar.gz",
             tar_bytes,
             "application/gzip",
         )
@@ -209,3 +209,70 @@ async def save_trajectory_in_server(memory: Memory):
             )
         except Exception as e:
             raise ValueError(f"Failed to save trajectory in server: {e}")
+
+
+async def save_memory_state_locally(
+    task: Task, memory: Memory, node: ActionNode | None
+):
+
+    browser_state = memory.browser_states[-1]
+    automation_state = memory.automation_state
+    step_directory = task.logs_directory / f"step_{str(automation_state.step_index)}"
+    step_directory.mkdir(parents=True, exist_ok=True)
+
+    save_screenshot(browser_state.screenshot, step_directory / "screenshot.png")
+
+    state_dict = {
+        "title": browser_state.title,
+        "url": browser_state.url,
+        "step_index": automation_state.step_index,
+        "try_index": automation_state.try_index,
+        "downloaded_files": [
+            downloaded_file.name for downloaded_file in memory.downloads
+        ],
+        "token_usage": memory.token_usage.model_dump(),
+    }
+
+    async with aiofiles.open(step_directory / "state.json", "w") as f:
+        await f.write(json.dumps(state_dict, indent=4))
+
+    if browser_state.axtree:
+        async with aiofiles.open(step_directory / "axtree.txt", "w") as f:
+            await f.write(browser_state.axtree)
+
+    if browser_state.final_prompt:
+        async with aiofiles.open(step_directory / "final_prompt.txt", "w") as f:
+            await f.write(browser_state.final_prompt)
+
+    if browser_state.llm_response:
+        async with aiofiles.open(step_directory / "llm_response.json", "w") as f:
+            await f.write(json.dumps(browser_state.llm_response, indent=4))
+
+    if node:
+        async with aiofiles.open(step_directory / "action_node.json", "w") as f:
+            await f.write(json.dumps(node.model_dump(), indent=4))
+
+    async with aiofiles.open(step_directory / "input_variables.json", "w") as f:
+        await f.write(json.dumps(memory.variables.input_variables, indent=4))
+
+    async with aiofiles.open(step_directory / "generated_variables.json", "w") as f:
+        await f.write(json.dumps(memory.variables.generated_variables, indent=4))
+
+    async with aiofiles.open(step_directory / "output_data.json", "w") as f:
+        await f.write(
+            json.dumps(
+                [
+                    output_data.model_dump(exclude_none=True, exclude={"screenshot"})
+                    for output_data in memory.variables.output_data
+                ],
+                indent=4,
+            )
+        )
+
+    for output_data in memory.variables.output_data:
+        if output_data.screenshot:
+            async with aiofiles.open(
+                step_directory / f"screenshot_{output_data.screenshot.filename}.png",
+                "wb",
+            ) as f:
+                await f.write(base64.b64decode(output_data.screenshot.base64))
