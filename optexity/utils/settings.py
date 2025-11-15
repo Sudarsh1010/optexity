@@ -1,4 +1,5 @@
 import os
+from typing import Literal
 
 from pydantic_settings import BaseSettings
 
@@ -18,6 +19,8 @@ class Settings(BaseSettings):
     SAVE_TRAJECTORY_ENDPOINT: str = "api/v1/save_trajectory"
 
     API_KEY: str
+
+    DEPLOYMENT: Literal["local", "cloud"]
 
     class Config:
         env_file = env_path

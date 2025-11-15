@@ -59,6 +59,9 @@ async def create_task_in_server(task: Task):
 
 
 async def start_task_in_server(task: Task):
+    if settings.DEPLOYMENT == "local":
+        return
+
     try:
         task.started_at = datetime.now(timezone.utc)
         task.status = "running"
