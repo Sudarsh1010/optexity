@@ -30,7 +30,12 @@ class Task(BaseModel):
     downloads_directory: Path | None = Field(default=None)
     log_file_path: Path | None = Field(default=None)
 
-    dedup_key: str = Field(init=False)
+    dedup_key: str = str(uuid.uuid4())
+    retry_count: int = 0
+    max_retries: int = 1
+
+    class Config:
+        json_encoders = {datetime: lambda v: v.isoformat() if v is not None else None}
 
     @model_validator(mode="after")
     def validate_unique_parameters(self):
@@ -40,8 +45,7 @@ class Task(BaseModel):
                 for unique_parameter_name in self.unique_parameter_names
             }
             self.dedup_key = json.dumps(self.unique_parameters, sort_keys=True)
-        else:
-            self.dedup_key = str(uuid.uuid4())
+
         return self
 
     @model_validator(mode="after")

@@ -24,6 +24,7 @@ from optexity.schema.actions.interaction_action import (
     SelectOptionAction,
 )
 from optexity.schema.memory import Memory
+from optexity.schema.task import Task
 
 error_handler_agent = ErrorHandlerAgent()
 
@@ -36,6 +37,7 @@ index_prediction_agent = ActionPredictionLocatorAxtree()
 
 async def run_interaction_action(
     interaction_action: InteractionAction,
+    task: Task,
     memory: Memory,
     browser: Browser,
     retries_left: int,
@@ -53,6 +55,7 @@ async def run_interaction_action(
                 memory.automation_state.start_2fa_time = time.time()
             await handle_click_element(
                 interaction_action.click_element,
+                task,
                 memory,
                 browser,
                 interaction_action.max_timeout_seconds_per_try,
@@ -69,6 +72,7 @@ async def run_interaction_action(
         elif interaction_action.select_option:
             await handle_select_option(
                 interaction_action.select_option,
+                task,
                 memory,
                 browser,
                 interaction_action.max_timeout_seconds_per_try,
@@ -78,17 +82,19 @@ async def run_interaction_action(
             await handle_go_back(interaction_action.go_back, memory, browser)
         elif interaction_action.download_url_as_pdf:
             await handle_download_url_as_pdf(
-                interaction_action.download_url_as_pdf, memory, browser
+                interaction_action.download_url_as_pdf, task, memory, browser
             )
         elif interaction_action.agentic_task:
-            await handle_agentic_task(interaction_action.agentic_task, memory, browser)
+            await handle_agentic_task(
+                interaction_action.agentic_task, task, memory, browser
+            )
         elif interaction_action.close_overlay_popup:
             await handle_agentic_task(
-                interaction_action.close_overlay_popup, memory, browser
+                interaction_action.close_overlay_popup, task, memory, browser
             )
     except AssertLocatorPresenceException as e:
         await handle_assert_locator_presence_error(
-            e, interaction_action, memory, browser, retries_left
+            e, interaction_action, task, memory, browser, retries_left
         )
 
 
@@ -169,7 +175,7 @@ async def handle_click_element(
                 logger.error("No page found for current page")
                 return
             download_path = (
-                memory.downloads_directory / click_element_action.download_filename
+                task.downloads_directory / click_element_action.download_filename
             )
             async with page.expect_download() as download_info:
                 await _actual_click()
@@ -243,6 +249,7 @@ async def handle_input_text(
 
 async def handle_select_option(
     select_option_action: SelectOptionAction,
+    task: Task,
     memory: Memory,
     browser: Browser,
     max_timeout_seconds_per_try: float,
@@ -262,7 +269,7 @@ async def handle_select_option(
                 logger.error("No page found for current page")
                 return
             download_path = (
-                memory.downloads_directory / select_option_action.download_filename
+                task.downloads_directory / select_option_action.download_filename
             )
             async with page.expect_download() as download_info:
                 await _actual_select_option()
@@ -298,7 +305,10 @@ async def handle_go_back(
 
 
 async def handle_download_url_as_pdf(
-    download_url_as_pdf_action: DownloadUrlAsPdfAction, memory: Memory, browser: Browser
+    download_url_as_pdf_action: DownloadUrlAsPdfAction,
+    task: Task,
+    memory: Memory,
+    browser: Browser,
 ):
     pdf_url = await browser.get_current_page_url()
 
@@ -312,7 +322,7 @@ async def handle_download_url_as_pdf(
         return
 
     download_path = (
-        memory.downloads_directory / download_url_as_pdf_action.download_filename
+        task.downloads_directory / download_url_as_pdf_action.download_filename
     )
 
     if isinstance(r.content, bytes):
@@ -330,6 +340,7 @@ async def handle_download_url_as_pdf(
 
 async def handle_agentic_task(
     agentic_task_action: AgenticTask | CloseOverlayPopupAction,
+    task: Task,
     memory: Memory,
     browser: Browser,
 ):
@@ -362,7 +373,7 @@ async def handle_agentic_task(
         )
 
         step_directory = (
-            memory.logs_directory / f"step_{str(memory.automation_state.step_index)}"
+            task.logs_directory / f"step_{str(memory.automation_state.step_index)}"
         )
         step_directory.mkdir(parents=True, exist_ok=True)
 
@@ -392,6 +403,7 @@ async def handle_agentic_task(
 async def handle_assert_locator_presence_error(
     error: AssertLocatorPresenceException,
     interaction_action: InteractionAction,
+    task: Task,
     memory: Memory,
     browser: Browser,
     retries_left: int,
@@ -406,13 +418,13 @@ async def handle_assert_locator_presence_error(
         if response.error_type == "website_not_loaded":
             asyncio.sleep(5)
             await run_interaction_action(
-                interaction_action, memory, browser, retries_left - 1
+                interaction_action, task, memory, browser, retries_left - 1
             )
         elif response.error_type == "overlay_popup_blocking":
             close_overlay_popup_action = CloseOverlayPopupAction()
-            await handle_agentic_task(close_overlay_popup_action, memory, browser)
+            await handle_agentic_task(close_overlay_popup_action, task, memory, browser)
             await run_interaction_action(
-                interaction_action, memory, browser, retries_left - 1
+                interaction_action, task, memory, browser, retries_left - 1
             )
         elif response.error_type == "fatal_error":
             logger.error(

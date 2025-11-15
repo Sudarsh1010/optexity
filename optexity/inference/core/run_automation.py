@@ -45,6 +45,7 @@ async def run_automation(task: Task, child_process_id: int):
         memory = Memory(variables=Variables(input_variables=task.input_parameters))
         browser = Browser(headless=False)
         await browser.start()
+        await browser.go_to_url(task.automation.url)
 
         automation = task.automation
 
@@ -69,12 +70,26 @@ async def run_automation(task: Task, child_process_id: int):
 
             for action_node in action_nodes:
                 full_automation.append(action_node.model_dump())
-                await run_automation_node(action_node, memory, browser)
+                await run_automation_node(action_node, task, memory, browser)
         task.status = "success"
     except Exception as e:
         task.error = str(e)
         task.status = "failed"
     finally:
+        await run_final_logging(task, memory, browser, child_process_id)
+
+        if browser:
+            await browser.stop()
+
+    logger.info(f"Task {task.task_id} completed with status {task.status}")
+    logging.getLogger(current_module).removeHandler(file_handler)
+
+
+async def run_final_logging(
+    task: Task, memory: Memory, browser: Browser, child_process_id: int
+):
+
+    try:
         await complete_task_in_server(task, memory.token_usage, child_process_id)
 
         memory.automation_state.step_index += 1
@@ -94,12 +109,8 @@ async def run_automation(task: Task, child_process_id: int):
         await save_downloads_in_server(task, memory)
         await save_trajectory_in_server(task, memory)
         await save_memory_state_locally(task, memory, None)
-
-        if browser:
-            await browser.stop()
-
-    logger.info(f"Task {task.task_id} completed with status {task.status}")
-    logging.getLogger(current_module).removeHandler(file_handler)
+    except Exception as e:
+        logger.error(f"Error running final logging: {e}")
 
 
 async def run_automation_node(
@@ -135,7 +146,7 @@ async def run_automation_node(
             await browser.attach_network_listeners()
 
             await run_interaction_action(
-                action_node.interaction_action, memory, browser, 2
+                action_node.interaction_action, task, memory, browser, 2
             )
         elif action_node.extraction_action:
             await run_extraction_action(action_node.extraction_action, memory, browser)

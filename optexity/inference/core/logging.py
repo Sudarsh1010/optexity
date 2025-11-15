@@ -1,6 +1,7 @@
 import base64
 import io
 import json
+import logging
 import tarfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -15,6 +16,8 @@ from optexity.schema.task import Task
 from optexity.schema.token_usage import TokenUsage
 from optexity.utils.settings import settings
 from optexity.utils.utils import save_screenshot
+
+logger = logging.getLogger(__name__)
 
 
 def create_tar_in_memory(directory: Path | str, name: str) -> io.BytesIO:
@@ -96,7 +99,7 @@ async def complete_task_in_server(
         "completed_at": task.completed_at.isoformat(),
         "status": task.status,
         "error": task.error,
-        "token_usage": token_usage.model_dump(exclude_none=True),
+        "token_usage": token_usage.model_dump(),
     }
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.post(
@@ -109,11 +112,12 @@ async def complete_task_in_server(
         try:
             return response.json()
         except httpx.HTTPStatusError as e:
-            raise ValueError(
+            logger.error(
                 f"Failed to complete task in server: {e.response.status_code} - {e.response.text}"
             )
+
         except Exception as e:
-            raise ValueError(f"Failed to complete task in server: {e}")
+            logger.error(f"Failed to complete task in server: {e}")
 
 
 async def save_output_data_in_server(task: Task, memory: Memory):
@@ -144,11 +148,11 @@ async def save_output_data_in_server(task: Task, memory: Memory):
         try:
             return response.json()
         except httpx.HTTPStatusError as e:
-            raise ValueError(
+            logger.error(
                 f"Failed to save output data in server: {e.response.status_code} - {e.response.text}"
             )
         except Exception as e:
-            raise ValueError(f"Failed to save output data in server: {e}")
+            logger.error(f"Failed to save output data in server: {e}")
 
 
 async def save_downloads_in_server(task: Task, memory: Memory):
@@ -177,11 +181,11 @@ async def save_downloads_in_server(task: Task, memory: Memory):
         try:
             return response.json()
         except httpx.HTTPStatusError as e:
-            raise ValueError(
+            logger.error(
                 f"Failed to save downloads in server: {e.response.status_code} - {e.response.text}"
             )
         except Exception as e:
-            raise ValueError(f"Failed to save downloads in server: {e}")
+            logger.error(f"Failed to save downloads in server: {e}")
 
 
 async def save_trajectory_in_server(task: Task, memory: Memory):
@@ -207,11 +211,11 @@ async def save_trajectory_in_server(task: Task, memory: Memory):
         try:
             return response.json()
         except httpx.HTTPStatusError as e:
-            raise ValueError(
+            logger.error(
                 f"Failed to save trajectory in server: {e.response.status_code} - {e.response.text}"
             )
         except Exception as e:
-            raise ValueError(f"Failed to save trajectory in server: {e}")
+            logger.error(f"Failed to save trajectory in server: {e}")
 
 
 async def save_memory_state_locally(

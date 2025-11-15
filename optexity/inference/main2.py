@@ -42,15 +42,15 @@ async def task_processor():
             # Get next task from queue (blocks until one is available)
             task = await task_queue.get()
             task_running = True
-            await run_automation(task)
-
+            await run_automation(task, child_process_id)
+            task_queue.task_done()
         except asyncio.CancelledError:
             logger.info("Task processor cancelled")
             break
         except Exception as e:
             logger.error(f"Error in task processor: {e}")
         finally:
-            task_queue.task_done()
+
             task_running = False
 
 
