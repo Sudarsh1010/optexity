@@ -123,10 +123,15 @@ async def command_based_action_with_retry(
             original_error=last_error,
             command=command,
         )
+    return last_error
 
 
 async def prompt_based_action(
-    func: Callable, memory: Memory, prompt_instructions: str | None, skip_prompt: bool
+    func: Callable,
+    memory: Memory,
+    prompt_instructions: str | None,
+    skip_prompt: bool,
+    text: str | None = None,
 ):
     if skip_prompt or prompt_instructions is None:
         return
@@ -140,7 +145,10 @@ async def prompt_based_action(
         memory.token_usage += token_usage
         memory.browser_states[-1].final_prompt = final_prompt
         memory.browser_states[-1].llm_response = response.model_dump()
-        await func(response.index)
+        if text is None:
+            await func(response.index)
+        else:
+            await func(response.index, text)
     except Exception as e:
         logger.error(f"Error in prompt_based_action for {func.__name__}: {e}")
         return
@@ -246,6 +254,7 @@ async def handle_input_text(
         memory,
         input_text_action.prompt_instructions,
         input_text_action.skip_prompt,
+        text=input_text_action.input_text,
     )
 
 
