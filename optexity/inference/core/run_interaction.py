@@ -23,7 +23,7 @@ from optexity.schema.actions.interaction_action import (
     InteractionAction,
     SelectOptionAction,
 )
-from optexity.schema.memory import Memory
+from optexity.schema.memory import BrowserState, Memory
 from optexity.schema.task import Task
 
 error_handler_agent = ErrorHandlerAgent()
@@ -129,19 +129,30 @@ async def command_based_action_with_retry(
             original_error=last_error,
             command=command,
         )
+    return last_error
 
 
 async def prompt_based_action(
-    func: Callable, memory: Memory, prompt_instructions: str | None, skip_prompt: bool
+    func: Callable,
+    memory: Memory,
+    prompt_instructions: str | None,
+    skip_prompt: bool,
+    browser: Browser,
 ):
     if skip_prompt or prompt_instructions is None:
         return
-    memory.automation_state.try_index += 1
-    axtree = memory.browser_states[-1].axtree
+
+    browser_state_summary = await browser.get_browser_state_summary()
+    memory.browser_states[-1] = BrowserState(
+        url=browser_state_summary.url,
+        screenshot=browser_state_summary.screenshot,
+        title=browser_state_summary.title,
+        axtree=browser_state_summary.dom_state.llm_representation(),
+    )
 
     try:
         final_prompt, response, token_usage = index_prediction_agent.predict_action(
-            prompt_instructions, axtree
+            prompt_instructions, memory.browser_states[-1].axtree
         )
         memory.token_usage += token_usage
         memory.browser_states[-1].final_prompt = final_prompt
@@ -154,6 +165,7 @@ async def prompt_based_action(
 
 async def handle_click_element(
     click_element_action: ClickElementAction,
+    task: Task,
     memory: Memory,
     browser: Browser,
     max_timeout_seconds_per_try: float,
@@ -205,6 +217,7 @@ async def handle_click_element(
         memory,
         click_element_action.prompt_instructions,
         click_element_action.skip_prompt,
+        browser,
     )
 
 
@@ -244,6 +257,7 @@ async def handle_input_text(
         memory,
         input_text_action.prompt_instructions,
         input_text_action.skip_prompt,
+        browser,
     )
 
 

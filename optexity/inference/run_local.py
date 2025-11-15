@@ -1,6 +1,8 @@
 import asyncio
 import logging
 import os
+import uuid
+from datetime import datetime, timezone
 
 from dotenv import load_dotenv
 
@@ -14,6 +16,7 @@ from optexity.examples.supabase_login import supabase_login_test
 from optexity.inference.core.run_automation import run_automation
 from optexity.inference.infra.browser import Browser
 from optexity.schema.memory import Memory, Variables
+from optexity.schema.task import Task
 
 load_dotenv()
 
@@ -131,25 +134,26 @@ async def run_shein_test():
 
     try:
         logger.debug("Starting Shein test")
-        browser = Browser()
-        memory = Memory(variables=Variables(input_variables={}))
-        await browser.start()
-        await browser.go_to_url(shein_test.url)
-        await run_automation(shein_test, memory, browser)
-        await asyncio.sleep(5)
+        task = Task(
+            task_id=str(uuid.uuid4()),
+            user_id=str(uuid.uuid4()),
+            recording_id=str(uuid.uuid4()),
+            automation=shein_test,
+            input_parameters={},
+            unique_parameter_names=[],
+            created_at=datetime.now(timezone.utc),
+            status="queued",
+        )
+        await run_automation(task, 0)
     except Exception as e:
         logger.error(f"Error running Shein test: {e}")
         raise e
     finally:
-        logger.debug("Inside finally, stopping browser")
-        await browser.stop()
-        logger.debug("Inside finally, browser stopped")
+
         logger.debug("Remaining tasks:")
         for task in asyncio.all_tasks():
             if task is not asyncio.current_task():
                 logger.debug(f"Remaining task: {task.get_coro()}")
-
-        logger.debug("Printed all tasks")
 
     logger.debug("Shein test finished")
 

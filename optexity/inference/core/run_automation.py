@@ -39,7 +39,8 @@ async def run_automation(task: Task, child_process_id: int):
     logging.getLogger("browser_use").setLevel(logging.INFO)
 
     logger.info(f"Task {task.task_id} started running")
-
+    memory = None
+    browser = None
     try:
         await start_task_in_server(task)
         memory = Memory(variables=Variables(input_variables=task.input_parameters))
@@ -76,8 +77,8 @@ async def run_automation(task: Task, child_process_id: int):
         task.error = str(e)
         task.status = "failed"
     finally:
-        await run_final_logging(task, memory, browser, child_process_id)
-
+        if memory and browser:
+            await run_final_logging(task, memory, browser, child_process_id)
         if browser:
             await browser.stop()
 
