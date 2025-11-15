@@ -153,9 +153,6 @@ async def handle_click_element(
     max_timeout_seconds_per_try: float,
     max_tries: int,
 ):
-    if click_element_action.skip_prompt:
-        max_tries = 1
-        max_timeout_seconds_per_try = 20.0
 
     async def _click_locator():
         async def _actual_click():
@@ -217,10 +214,6 @@ async def handle_input_text(
     max_timeout_seconds_per_try: float,
     max_tries: int,
 ):
-    if input_text_action.skip_prompt:
-        max_tries = 1
-        max_timeout_seconds_per_try = 20.0
-
     async def _input_text_locator():
         locator = await browser.get_locator_from_command(input_text_action.command)
         if input_text_action.fill_or_type == "fill":
