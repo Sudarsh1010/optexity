@@ -2,6 +2,9 @@ import asyncio
 import logging
 from copy import deepcopy
 
+from patchright._impl._errors import TimeoutError as PatchrightTimeoutError
+from playwright._impl._errors import TimeoutError as PlaywrightTimeoutError
+
 from optexity.inference.core.logging import (
     complete_task_in_server,
     save_downloads_in_server,
@@ -188,6 +191,10 @@ async def sleep_for_page_to_load(browser: Browser, sleep_time: float):
     try:
         await page.wait_for_load_state("load", timeout=sleep_time * 1000)
     except TimeoutError as e:
+        pass
+    except PatchrightTimeoutError as e:
+        pass
+    except PlaywrightTimeoutError as e:
         pass
 
 

@@ -14,7 +14,7 @@ class ActionNode(BaseModel):
     python_script_action: PythonScriptAction | None = None
     fetch_2fa_action: Fetch2faAction | None = None
     before_sleep_time: float = 0.0
-    end_sleep_time: float = 1.0
+    end_sleep_time: float = 3.0
     expect_new_tab: bool = False
     max_new_tab_wait_time: float = 0.0
 

@@ -23,7 +23,7 @@ from optexity.schema.actions.interaction_action import (
     InteractionAction,
     SelectOptionAction,
 )
-from optexity.schema.memory import BrowserState, Memory
+from optexity.schema.memory import BrowserState, Memory, OutputData
 from optexity.schema.task import Task
 
 error_handler_agent = ErrorHandlerAgent()
@@ -138,6 +138,7 @@ async def prompt_based_action(
     prompt_instructions: str | None,
     skip_prompt: bool,
     browser: Browser,
+    text: str | None = None,
 ):
     if skip_prompt or prompt_instructions is None:
         return
@@ -157,7 +158,10 @@ async def prompt_based_action(
         memory.token_usage += token_usage
         memory.browser_states[-1].final_prompt = final_prompt
         memory.browser_states[-1].llm_response = response.model_dump()
-        await func(response.index)
+        if text is None:
+            await func(response.index)
+        else:
+            await func(response.index, text)
     except Exception as e:
         logger.error(f"Error in prompt_based_action for {func.__name__}: {e}")
         return
@@ -171,15 +175,20 @@ async def handle_click_element(
     max_timeout_seconds_per_try: float,
     max_tries: int,
 ):
+
     async def _click_locator():
         async def _actual_click():
             locator = await browser.get_locator_from_command(
                 click_element_action.command
             )
             if click_element_action.double_click:
-                await locator.dblclick(timeout=max_timeout_seconds_per_try * 1000)
+                await locator.dblclick(
+                    no_wait_after=True, timeout=max_timeout_seconds_per_try * 1000
+                )
             else:
-                await locator.click(timeout=max_timeout_seconds_per_try * 1000)
+                await locator.click(
+                    no_wait_after=True, timeout=max_timeout_seconds_per_try * 1000
+                )
 
         if click_element_action.expect_download:
             page = await browser.get_current_page()
@@ -232,11 +241,14 @@ async def handle_input_text(
         locator = await browser.get_locator_from_command(input_text_action.command)
         if input_text_action.fill_or_type == "fill":
             await locator.fill(
-                input_text_action.input_text, timeout=max_timeout_seconds_per_try * 1000
+                input_text_action.input_text,
+                no_wait_after=True,
+                timeout=max_timeout_seconds_per_try * 1000,
             )
         else:
             await locator.type(
                 input_text_action.input_text,
+                no_wait_after=True,
                 timeout=max_timeout_seconds_per_try * 1000,
             )
 
@@ -258,6 +270,7 @@ async def handle_input_text(
         input_text_action.prompt_instructions,
         input_text_action.skip_prompt,
         browser,
+        text=input_text_action.input_text,
     )
 
 
@@ -275,7 +288,11 @@ async def handle_select_option(
             locator = await browser.get_locator_from_command(
                 select_option_action.command
             )
-            await locator.select_option(select_option_action.select_values)
+            await locator.select_option(
+                select_option_action.select_values,
+                no_wait_after=True,
+                timeout=max_timeout_seconds_per_try * 1000,
+            )
 
         if select_option_action.expect_download:
             page = await browser.get_current_page()
@@ -442,7 +459,10 @@ async def handle_assert_locator_presence_error(
             )
         elif response.error_type == "fatal_error":
             logger.error(
-                f"Fatal error running node {memory.automation_state.step_index} after {retries_left} retries: {error.original_error}"
+                f"Fatal error running node {memory.automation_state.step_index} after {retries_left} retries: {error.original_error}. Error: {response.detailed_reason}"
+            )
+            memory.variables.output_data.append(
+                OutputData(text=response.detailed_reason)
             )
             raise Exception(
                 f"Fatal error running node {memory.automation_state.step_index} after {retries_left} retries: {error.original_error}. Final reason: {response.detailed_reason}"

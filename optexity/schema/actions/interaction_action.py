@@ -233,6 +233,13 @@ class InteractionAction(BaseModel):
                 model.click_element is not None
             ), "2fa timer can only be started when clicking on an element"
 
+        if (
+            (model.click_element and model.click_element.skip_prompt)
+            or (model.input_text and model.input_text.skip_prompt)
+            or (model.select_option and model.select_option.skip_prompt)
+        ):
+            model.max_tries = 5
+
         return model
 
     def replace(self, pattern: str, replacement: str):
