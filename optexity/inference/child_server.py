@@ -100,24 +100,24 @@ def main():
         help="Host to bind the server to (default: 0.0.0.0)",
     )
     parser.add_argument(
+        "--port",
+        type=int,
+        help="Port to run the server ",
+    )
+    parser.add_argument(
         "--child_process_id",
         type=int,
-        help="Number of child processes to run",
+        help="Child process ID",
     )
 
     args = parser.parse_args()
 
-    assert args.child_process_id is not None
-    assert args.child_process_id >= 0
-    assert args.child_process_id < 10
-
     global child_process_id
     child_process_id = args.child_process_id
 
-    port = 9000 + args.child_process_id
     # Start the server (this is blocking and manages its own event loop)
-    logger.info(f"Starting server on {args.host}:{port}")
-    run(app, host=args.host, port=port)
+    logger.info(f"Starting server on {args.host}:{args.port}")
+    run(app, host=args.host, port=args.port)
 
 
 if __name__ == "__main__":
