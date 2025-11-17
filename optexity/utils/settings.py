@@ -12,7 +12,7 @@ if not env_path:
 
 
 class Settings(BaseSettings):
-    SERVER_URL: str = "http://host.docker.internal:8000"
+    SERVER_URL: str = "http://localhost:8000"
     HEALTH_ENDPOINT: str = "api/v1/health"
 
     CREATE_TASK_ENDPOINT: str = "api/v1/create_task"
