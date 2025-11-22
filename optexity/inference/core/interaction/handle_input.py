@@ -34,7 +34,7 @@ async def handle_input_text(
             return
 
     if not input_text_action.skip_prompt:
-        await input_text_index(input_text_action, browser)
+        await input_text_index(input_text_action, browser, memory)
 
 
 async def input_text_locator(
