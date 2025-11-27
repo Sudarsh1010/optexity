@@ -142,13 +142,39 @@ async def save_downloads_in_server(task: Task, memory: Memory):
         }
 
         tar_bytes = create_tar_in_memory(task.downloads_directory, task.task_id)
-        files = {
-            "compressed_downloads": (
-                f"{task.task_id}.tar.gz",
-                tar_bytes,
-                "application/gzip",
+        files = []
+        # add tar.gz
+        files.append(
+            (
+                "compressed_downloads",
+                (f"{task.task_id}.tar.gz", tar_bytes, "application/gzip"),
             )
-        }
+        )
+
+        # add screenshots
+        for data in memory.variables.output_data:
+            files.append(
+                (
+                    "screenshots",
+                    (
+                        data.screenshot.filename,
+                        base64.b64decode(data.screenshot.base64),
+                        "image/png",
+                    ),
+                )
+            )
+
+        files.append(
+            (
+                "screenshots",
+                (
+                    "final_screenshot.png",
+                    base64.b64decode(memory.final_screenshot),
+                    "image/png",
+                ),
+            )
+        )
+
         async with httpx.AsyncClient() as client:
 
             response = await client.post(url, headers=headers, data=data, files=files)
