@@ -30,41 +30,13 @@ def create_tar_in_memory(directory: Path | str, name: str) -> io.BytesIO:
     return tar_bytes
 
 
-async def create_task_in_server(task: Task):
-    try:
-        url = urljoin(settings.SERVER_URL, settings.CREATE_TASK_ENDPOINT)
-        headers = {"x-api-key": settings.API_KEY}
-        body = {
-            "task_id": task.task_id,
-            "recording_id": task.recording_id,
-            "input_parameters": task.input_parameters,
-            "unique_parameters": task.unique_parameters,
-            "created_at": task.created_at.isoformat(),
-        }
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                url,
-                headers=headers,
-                json=body,
-            )
-
-            response.raise_for_status()
-            return response.json()
-    except httpx.HTTPStatusError as e:
-        raise ValueError(
-            f"Failed to create task in server: {e.response.status_code} - {e.response.text}"
-        )
-    except Exception as e:
-        raise ValueError(f"Failed to create task in server: {e}")
-
-
 async def start_task_in_server(task: Task):
     try:
         task.started_at = datetime.now(timezone.utc)
         task.status = "running"
 
         url = urljoin(settings.SERVER_URL, settings.START_TASK_ENDPOINT)
-        headers = {"x-api-key": settings.API_KEY}
+        headers = {"x-api-key": task.api_key}
         body = {
             "task_id": task.task_id,
             "started_at": task.started_at.isoformat(),
@@ -95,7 +67,7 @@ async def complete_task_in_server(
         task.completed_at = datetime.now(timezone.utc)
 
         url = urljoin(settings.SERVER_URL, settings.COMPLETE_TASK_ENDPOINT)
-        headers = {"x-api-key": settings.API_KEY}
+        headers = {"x-api-key": task.api_key}
         body = {
             "task_id": task.task_id,
             "child_process_id": child_process_id,
@@ -128,7 +100,7 @@ async def save_output_data_in_server(task: Task, memory: Memory):
             return
 
         url = urljoin(settings.SERVER_URL, settings.SAVE_OUTPUT_DATA_ENDPOINT)
-        headers = {"x-api-key": settings.API_KEY}
+        headers = {"x-api-key": task.api_key}
 
         output_data = [
             output_data.model_dump(exclude_none=True, exclude={"screenshot"})
@@ -163,7 +135,7 @@ async def save_downloads_in_server(task: Task, memory: Memory):
             return
 
         url = urljoin(settings.SERVER_URL, settings.SAVE_DOWNLOADS_ENDPOINT)
-        headers = {"x-api-key": settings.API_KEY}
+        headers = {"x-api-key": task.api_key}
 
         data = {
             "task_id": task.task_id,  # form field
@@ -194,7 +166,7 @@ async def save_downloads_in_server(task: Task, memory: Memory):
 async def save_trajectory_in_server(task: Task, memory: Memory):
     try:
         url = urljoin(settings.SERVER_URL, settings.SAVE_TRAJECTORY_ENDPOINT)
-        headers = {"x-api-key": settings.API_KEY}
+        headers = {"x-api-key": task.api_key}
 
         data = {
             "task_id": task.task_id,  # form field

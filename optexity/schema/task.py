@@ -37,6 +37,7 @@ class Task(BaseModel):
     dedup_key: str = str(uuid.uuid4())
     retry_count: int = 0
     max_retries: int = 1
+    api_key: str
 
     class Config:
         json_encoders = {datetime: lambda v: v.isoformat() if v is not None else None}
