@@ -61,16 +61,19 @@ class Gemini(LLMModel):
                 config={
                     "response_mime_type": "application/json",
                     "system_instruction": system_instruction,
-                    "response_schema": response_schema,
+                    "response_json_schema": response_schema.model_json_schema(),
                 },
             )
-            parsed_response: response_schema = response.parsed
+            if isinstance(response.parsed, BaseModel):
+                parsed_response: BaseModel = response.parsed
+            else:
+                parsed_response = response_schema.model_validate(response.parsed)
         else:
             response = self.client.models.generate_content(
                 model=self.model_name.value, contents=prompt
             )
 
-            parsed_response: response_schema = self.parse_from_completion(
+            parsed_response: BaseModel = self.parse_from_completion(
                 response.candidates[0].content.parts[0].text, response_schema
             )
 
