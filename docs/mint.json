@@ -1,0 +1,15 @@
+{
+    "name": "Optexity Docs",
+    "navigation": [
+        {
+            "group": "Getting Started",
+            "pages": ["/docs/helloworld"]
+        }
+    ],
+    "favicon": "/logo/Optexity_logo_small.svg",
+    "colors": {
+        "primary": "#16A34A",
+        "light": "#07C983",
+        "dark": "#15803D"
+    }
+}

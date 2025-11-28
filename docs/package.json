@@ -1,4 +1,10 @@
 {
+    "name": "optexity-docs",
+    "private": true,
+    "scripts": {
+        "dev": "mintlify dev",
+        "build": "mintlify build"
+    },
     "dependencies": {
         "@mintlify/cli": "^4.0.822"
     }
