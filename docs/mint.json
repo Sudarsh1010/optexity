@@ -3,7 +3,7 @@
     "navigation": [
         {
             "group": "Getting Started",
-            "pages": ["/docs/installation"]
+            "pages": ["/docs/installation", "/docs/getting-started", "/docs/inference-api"]
         }
     ],
     "favicon": "/logo/Optexity_logo_small.svg",

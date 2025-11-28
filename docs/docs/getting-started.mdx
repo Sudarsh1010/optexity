@@ -1,0 +1,135 @@
+---
+title: Getting Started
+---
+
+Get from zero to a running Optexity inference server and a working request.
+
+This guide assumes you have already completed the steps in `Installation`.
+
+## 1. Configure your environment
+
+Optexity reads configuration from a standard `.env` file via the `ENV_PATH` environment variable.
+
+Create a `.env` file in the repo root:
+
+```bash
+touch .env
+```
+
+Add the required values:
+
+```bash
+API_KEY=YOUR_OPTEXTITY_API_KEY          # API key used for authenticated requests
+DEPLOYMENT=dev                          # or "prod" in production
+```
+
+Then export `ENV_PATH` when running processes that rely on these settings:
+
+```bash
+export ENV_PATH=.env
+```
+
+> If `ENV_PATH` is not set, the inference server will try to start with defaults and log a warning. For normal usage you should always point `ENV_PATH` at a real `.env` file.
+
+## 2. Start the inference child process server
+
+The primary way to run browser automations locally is via the inference child process server in `optexity/inference/child_process.py`.
+
+From the repository root:
+
+```bash
+ENV_PATH=.env python optexity/inference/child_process.py --port 9000 --child_process_id 0
+```
+
+Key parameters:
+
+- **`--port`**: HTTP port the local inference server listens on (e.g. `9000`).
+- **`--child_process_id`**: Integer identifier for this worker. Use different IDs if you run multiple workers in parallel.
+
+When this process starts, it exposes:
+
+- `GET /health` – health and queue status
+- `GET /is_task_running` – whether a task is currently executing
+- `POST /inference` – main endpoint to allocate and execute tasks (see next section)
+
+## 3. Call the `/inference` endpoint
+
+With the server running on `http://localhost:9000`, you can allocate a task by sending an `InferenceRequest` to `/inference`.
+
+### Request schema
+
+`InferenceRequest` (from `optexity/schema/inference.py`) has this shape:
+
+- **`endpoint_name`**: Name of the automation endpoint to execute. This must match a recording/automation defined in your Optexity backend.
+- **`input_parameters`**: `dict[str, list[str]]` – all input values for the automation, as lists of strings.
+- **`unique_parameter_names`**: `list[str]` – subset of keys from `input_parameters` that uniquely identify this task (used for deduplication and validation).
+
+A minimal JSON example:
+
+```json
+{
+  "endpoint_name": "signup-flow",
+  "input_parameters": {
+    "email": ["alice@example.com"],
+    "full_name": ["Alice Doe"]
+  },
+  "unique_parameter_names": ["email"]
+}
+```
+
+Constraints:
+
+- Every entry in `unique_parameter_names` **must** also exist as a key in `input_parameters`.
+- Each value in `input_parameters` should be a list of strings, even if you only pass a single value.
+
+### Example `curl` request
+
+```bash
+curl -X POST http://localhost:9000/inference \
+  -H "Content-Type: application/json" \
+  -d '{
+    "endpoint_name": "signup-flow",
+    "input_parameters": {
+      "email": ["alice@example.com"],
+      "full_name": ["Alice Doe"]
+    },
+    "unique_parameter_names": ["email"]
+  }'
+```
+
+On success, the inference server:
+
+1. Forwards the request to your control plane at `api.optexity.com` using `INFERENCE_ENDPOINT` (defaults to `api/v1/inference`).
+2. Receives a serialized `Task` object from the control plane.
+3. Enqueues that `Task` locally and starts processing it in the background.
+4. Returns a `202 Accepted` response like:
+
+```json
+{
+  "success": true,
+  "message": "Task has been allocated"
+}
+```
+
+> Task execution (browser automation, screenshots, outputs, etc.) happens asynchronously in the background worker.
+
+## 4. Monitor health and execution
+
+The child process server exposes simple introspection endpoints:
+
+- `GET /health`
+  - Returns HTTP 200 when healthy.
+  - Returns HTTP 503 if a task has been running for more than 15 minutes without finishing.
+  - Includes `task_running` and `queued_tasks` in the JSON body.
+
+- `GET /is_task_running`
+  - Returns `true` or `false` indicating whether a task is currently executing.
+
+You can integrate these into your monitoring/alerting system or use them during local development.
+
+## 5. Next steps
+
+- See **Inference API Reference** for a deeper look at `InferenceRequest` and `Task` models.
+- Explore the internal code in `optexity/inference` and `optexity/schema` to build higher-level integrations or orchestration around Optexity.
+
+

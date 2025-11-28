@@ -1,0 +1,129 @@
+---
+title: Inference API Reference
+---
+
+This page documents the core models and HTTP endpoints used when running Optexity inference locally.
+
+## Overview
+
+At a high level:
+
+- The **child process server** (`optexity/inference/child_process.py`) exposes a small HTTP API.
+- It accepts an `InferenceRequest`, asks the Optexity control plane for a `Task`, and then executes that task via browser automation.
+- Configuration is provided through environment variables loaded from a file referenced by `ENV_PATH`.
+
+## Configuration
+
+Configuration is defined in `optexity/utils/settings.py` via a `Settings` model:
+
+- **`HEALTH_ENDPOINT`** (default: `api/v1/health`)
+- **`INFERENCE_ENDPOINT`** (default: `api/v1/inference`)
+- **`START_TASK_ENDPOINT`** (default: `api/v1/start_task`)
+- **`COMPLETE_TASK_ENDPOINT`** (default: `api/v1/complete_task`)
+- **`SAVE_OUTPUT_DATA_ENDPOINT`** (default: `api/v1/save_output_data`)
+- **`SAVE_DOWNLOADS_ENDPOINT`** (default: `api/v1/save_downloads`)
+- **`SAVE_TRAJECTORY_ENDPOINT`** (default: `api/v1/save_trajectory`)
+- **`API_KEY`**: API key for authenticated server-to-server calls (required).
+- **`CHILD_PORT_OFFSET`** (default: `9000`): Port offset used when discovering child processes in AWS/ECS environments.
+- **`DEPLOYMENT`**: `"dev"` or `"prod"`.
+
+All fields are read from the file referenced in `ENV_PATH`:
+
+```bash
+export ENV_PATH=.env
+```
+
+## Models
+
+### `InferenceRequest`
+
+Defined in `optexity/schema/inference.py`:
+
+- **`endpoint_name: str`**
+  - Name of the target automation endpoint.
+  - Must match a recording/automation configured in the control plane.
+
+- **`input_parameters: dict[str, list[str]]`**
+  - All input parameters for the automation, modeled as lists of strings.
+  - Example: `{ "email": ["alice@example.com"], "full_name": ["Alice Doe"] }`.
+
+- **`unique_parameter_names: list[str]`**
+  - Subset of keys from `input_parameters` used to identify a unique task.
+  - Validation ensures every name in `unique_parameter_names` exists as a key in `input_parameters`.
+
+### `Task`
+
+Defined in `optexity/schema/task.py`:
+
+- **Identity & routing**
+  - `task_id: str`
+  - `user_id: str`
+  - `recording_id: str`
+  - `automation: Automation`
+
+- **Inputs & deduplication**
+  - `input_parameters: dict[str, list[str]]`
+  - `unique_parameter_names: list[str]`
+  - `unique_parameters: dict[str, list[str]] | None`
+  - `dedup_key: str` – stable JSON-encoded key derived from `unique_parameters` (when provided).
+
+- **Lifecycle & status**
+  - `created_at`, `allocated_at`, `started_at`, `completed_at: datetime | None`
+  - `status: "queued" | "allocated" | "running" | "success" | "failed" | "cancelled"`
+  - `error: str | None`
+  - `retry_count: int` (default `0`)
+  - `max_retries: int` (default `1`)
+
+- **Storage paths**
+  - `save_directory: Path` (default `/tmp/optexity`)
+  - `task_directory`, `logs_directory`, `downloads_directory`, `log_file_path: Path | None`
+  - Directories are created on validation.
+
+- **Accounting**
+  - `api_key: str`
+
+Helper request models also exist for updating task state and sending output data back to the control plane:
+
+- `TaskCreateRequest`
+- `TaskStartedRequest`
+- `TaskCompleteRequest`
+- `TaskOutputDataRequest`
+
+## HTTP endpoints (child process server)
+
+The child process server is created in `get_app_with_endpoints` (`optexity/inference/child_process.py`).
+
+When **`is_aws=False`** (local mode, recommended for development):
+
+- **`POST /inference`**
+  - **Body**: `InferenceRequest` JSON.
+  - **Behavior**:
+    1. Sends the request to `api.optexity.com` + `INFERENCE_ENDPOINT` with header `x-api-key: API_KEY`.
+    2. Expects a response containing a serialized `Task`.
+    3. Enqueues that `Task` onto a local `asyncio.Queue`.
+    4. Returns `202 Accepted` with:
+       - `{"success": true, "message": "Task has been allocated"}` on success.
+
+- **`GET /health`**
+  - Returns HTTP 200 with:
+    - `status: "healthy"`
+    - `task_running: bool`
+    - `queued_tasks: int`
+  - If a task has been running more than 15 minutes, returns HTTP 503 with:
+    - `status: "unhealthy"`
+    - A descriptive `message`.
+
+- **`GET /is_task_running`**
+  - Returns a boolean indicating whether a task is currently executing.
+
+When **`is_aws=True`** (managed/remote worker mode):
+
+- **`POST /allocate_task`**
+  - Accepts a serialized `Task` directly in the request body and enqueues it for execution.
+
+- **`POST /set_child_process_id`**
+  - Sets the `child_process_id` for this worker.
+
+- On startup, the process:
+  - Introspects ECS metadata from `http://169.254.170.2/v3/task`.
+  - Registers itself with the master at `SERVER_URL` via a `register_child` endpoint.
