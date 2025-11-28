@@ -1,0 +1,77 @@
+{
+    "$schema": "https://mintlify.com/docs.json",
+    "name": "Optexity Documentation",
+    "theme": "mint",
+    "colors": {
+        "primary": "#16A34A",
+        "light": "#07C983",
+        "dark": "#15803D"
+    },
+    "favicon": "/logo/Optexity_logo_small.svg",
+    "navigation": {
+        "tabs": [
+            {
+                "tab": "Guides",
+                "groups": [
+                    {
+                        "group": "Getting Started",
+                        "pages": [
+                            "/docs/installation",
+                            "/docs/getting-started",
+                            "/docs/inference-api"
+                        ]
+                    }
+                ]
+            },
+            {
+                "tab": "API reference",
+                "groups": [
+                    {
+                        "group": "API documentation",
+                        "pages": ["api-reference/introduction"]
+                    }
+                ]
+            }
+        ],
+        "global": {
+            "anchors": [
+                {
+                    "anchor": "Documentation",
+                    "href": "https://docs.optexity.com",
+                    "icon": "book-open-cover"
+                },
+                {
+                    "anchor": "Blog",
+                    "href": "https://optexity.com/blog",
+                    "icon": "newspaper"
+                }
+            ]
+        }
+    },
+    "logo": {
+        "light": "/logo/logo_optexity_black.svg",
+        "dark": "/logo/logo_optexity.svg"
+    },
+    "navbar": {
+        "links": [
+            {
+                "label": "Support",
+                "href": "mailto:founders@optexity.com"
+            }
+        ],
+        "primary": {
+            "type": "button",
+            "label": "Main Website",
+            "href": "https://optexity.com"
+        }
+    },
+    "contextual": {
+        "options": ["copy", "view", "chatgpt", "claude", "perplexity", "mcp", "cursor", "vscode"]
+    },
+    "footer": {
+        "socials": {
+            "x": "https://x.com/optexity",
+            "linkedin": "https://www.linkedin.com/company/optexity"
+        }
+    }
+}
