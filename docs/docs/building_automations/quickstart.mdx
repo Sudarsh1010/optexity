@@ -86,6 +86,64 @@ Once recorded, your automation is saved as JSON on the dashboard. Let's break do
 
 ### The Complete Automation
 
+Here is a sample automation:
+```json
+{
+    "url": "https://example.com",
+    "parameters": {
+        "input_parameters": {
+            "username": [
+                "user@example.com"
+            ],
+            "password": [
+                "mypassword123"
+            ]
+        },
+        "generated_parameters": {}
+    },
+    "nodes": [
+        {
+            "interaction_action": {
+                "click_element": {
+                    "command": "get_by_role(\"link\", name=\"Sign in\")",
+                    "prompt_instructions": "Click the Sign in link in the navigation bar"
+                }
+            },
+            "end_sleep_time": 1.0
+        },
+        {
+            "interaction_action": {
+                "input_text": {
+                    "command": "get_by_role(\"textbox\", name=\"Email\")",
+                    "prompt_instructions": "Enter the email address in the login form",
+                    "input_text": "{username[0]}"
+                }
+            },
+            "end_sleep_time": 1.0
+        },
+        {
+            "interaction_action": {
+                "input_text": {
+                    "command": "get_by_role(\"textbox\", name=\"Password\")",
+                    "prompt_instructions": "Enter the password in the login form",
+                    "input_text": "{password[0]}"
+                }
+            },
+            "end_sleep_time": 1.0
+        },
+        {
+            "interaction_action": {
+                "click_element": {
+                    "command": "get_by_role(\"button\", name=\"Sign In\")",
+                    "prompt_instructions": "Click the Sign In button to submit the form"
+                }
+            },
+            "end_sleep_time": 1.0
+        }
+    ]
+}
+```
+
 Here's what a login automation looks like in Python:
 
 ```python
