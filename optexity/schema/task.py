@@ -34,7 +34,7 @@ class Task(BaseModel):
     downloads_directory: Path | None = Field(default=None)
     log_file_path: Path | None = Field(default=None)
 
-    dedup_key: str = str(uuid.uuid4())
+    dedup_key: str = Field(default_factory=lambda: str(uuid.uuid4()))
     retry_count: int = 0
     max_retries: int = 1
     api_key: str
