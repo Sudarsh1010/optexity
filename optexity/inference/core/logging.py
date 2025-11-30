@@ -221,6 +221,35 @@ async def save_trajectory_in_server(task: Task, memory: Memory):
         logger.error(f"Failed to save trajectory in server: {e}")
 
 
+async def initiate_callback(task: Task):
+    try:
+
+        if task.callback_url is None:
+            return
+        logger.info("initiating callback")
+
+        url = urljoin(settings.SERVER_URL, settings.CALLBACK_ENDPOINT)
+        headers = {"x-api-key": task.api_key}
+
+        data = {
+            "task_id": task.task_id,  # form field
+            "callback_url": task.callback_url,
+        }
+
+        async with httpx.AsyncClient() as client:
+
+            response = await client.put(url, headers=headers, json=data)
+
+            response.raise_for_status()
+            return response.json()
+    except httpx.HTTPStatusError as e:
+        logger.error(
+            f"Failed to save trajectory in server: {e.response.status_code} - {e.response.text}"
+        )
+    except Exception as e:
+        logger.error(f"Failed to save trajectory in server: {e}")
+
+
 async def save_latest_memory_state_locally(
     task: Task, memory: Memory, node: ActionNode | None
 ):
@@ -230,7 +259,10 @@ async def save_latest_memory_state_locally(
     step_directory = task.logs_directory / f"step_{str(automation_state.step_index)}"
     step_directory.mkdir(parents=True, exist_ok=True)
 
-    save_screenshot(browser_state.screenshot, step_directory / "screenshot.png")
+    if browser_state.screenshot:
+        save_screenshot(browser_state.screenshot, step_directory / "screenshot.png")
+    else:
+        logger.warning("No screenshot found for step %s", automation_state.step_index)
 
     state_dict = {
         "title": browser_state.title,

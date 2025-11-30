@@ -38,6 +38,7 @@ class Task(BaseModel):
     retry_count: int = 0
     max_retries: int = 1
     api_key: str
+    callback_url: str | None = None
 
     class Config:
         json_encoders = {datetime: lambda v: v.isoformat() if v is not None else None}

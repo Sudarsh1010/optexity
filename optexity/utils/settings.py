@@ -12,7 +12,7 @@ if not env_path:
 
 
 class Settings(BaseSettings):
-    SERVER_URL: str = "https://api.optexity.com"
+    SERVER_URL: str = "http://localhost:8000"
     HEALTH_ENDPOINT: str = "api/v1/health"
     INFERENCE_ENDPOINT: str = "api/v1/inference"
     START_TASK_ENDPOINT: str = "api/v1/start_task"
@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     SAVE_OUTPUT_DATA_ENDPOINT: str = "api/v1/save_output_data"
     SAVE_DOWNLOADS_ENDPOINT: str = "api/v1/save_downloads"
     SAVE_TRAJECTORY_ENDPOINT: str = "api/v1/save_trajectory"
+    CALLBACK_ENDPOINT: str = "api/v1/callback"
 
     API_KEY: str
 

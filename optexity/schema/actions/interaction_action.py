@@ -144,6 +144,11 @@ class GoToUrlAction(BaseModel):
     url: str
     new_tab: bool = False  # True to open in new tab, False to navigate in current tab
 
+    def replace(self, pattern: str, replacement: str):
+        if self.url:
+            self.url = self.url.replace(pattern, replacement)
+        return self
+
 
 class GoBackAction(BaseModel):
     pass
@@ -256,5 +261,6 @@ class InteractionAction(BaseModel):
             self.agentic_task.replace(pattern, replacement)
         if self.close_overlay_popup:
             self.close_overlay_popup.replace(pattern, replacement)
-
+        if self.go_to_url:
+            self.go_to_url.replace(pattern, replacement)
         return self

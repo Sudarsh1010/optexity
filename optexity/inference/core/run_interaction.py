@@ -16,6 +16,7 @@ from optexity.schema.actions.interaction_action import (
     CloseOverlayPopupAction,
     DownloadUrlAsPdfAction,
     GoBackAction,
+    GoToUrlAction,
     InteractionAction,
 )
 from optexity.schema.memory import Memory, OutputData
@@ -84,10 +85,18 @@ async def run_interaction_action(
             await handle_agentic_task(
                 interaction_action.close_overlay_popup, task, memory, browser
             )
+        elif interaction_action.go_to_url:
+            await handle_go_to_url(interaction_action.go_to_url, task, memory, browser)
     except AssertLocatorPresenceException as e:
         await handle_assert_locator_presence_error(
             e, interaction_action, task, memory, browser, retries_left
         )
+
+
+async def handle_go_to_url(
+    go_to_url_action: GoToUrlAction, task: Task, memory: Memory, browser: Browser
+):
+    await browser.go_to_url(go_to_url_action.url)
 
 
 async def handle_go_back(
