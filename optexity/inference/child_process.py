@@ -134,6 +134,32 @@ def get_app_with_endpoints(is_aws: bool):
             },
         )
 
+    @app.post("/set_child_process_id", tags=["info"])
+    async def set_child_process_id(request: ChildProcessIdRequest):
+        """Set child process id endpoint."""
+        global child_process_id
+        child_process_id = int(request.new_child_process_id)
+        return JSONResponse(
+            content={"success": True, "message": "Child process id has been set"},
+            status_code=200,
+        )
+
+    @app.post("/allocate_task")
+    async def allocate_task(task: Task = Body(...)):
+        """Get details of a specific task."""
+        try:
+
+            await task_queue.put(task)
+            return JSONResponse(
+                content={"success": True, "message": "Task has been allocated"},
+                status_code=202,
+            )
+        except Exception as e:
+            logger.error(f"Error allocating task {task.task_id}: {e}")
+            return JSONResponse(
+                content={"success": False, "message": str(e)}, status_code=500
+            )
+
     if not is_aws:
 
         @app.post("/inference")
@@ -168,34 +194,6 @@ def get_app_with_endpoints(is_aws: bool):
 
                 logger.error(f"❌ Error fetching recordings: {error}")
                 return JSONResponse({"success": False, "error": error}, status_code=500)
-
-    if is_aws:
-
-        @app.post("/allocate_task")
-        async def allocate_task(task: Task = Body(...)):
-            """Get details of a specific task."""
-            try:
-
-                await task_queue.put(task)
-                return JSONResponse(
-                    content={"success": True, "message": "Task has been allocated"},
-                    status_code=202,
-                )
-            except Exception as e:
-                logger.error(f"Error allocating task {task.task_id}: {e}")
-                return JSONResponse(
-                    content={"success": False, "message": str(e)}, status_code=500
-                )
-
-        @app.post("/set_child_process_id", tags=["info"])
-        async def set_child_process_id(request: ChildProcessIdRequest):
-            """Set child process id endpoint."""
-            global child_process_id
-            child_process_id = int(request.new_child_process_id)
-            return JSONResponse(
-                content={"success": True, "message": "Child process id has been set"},
-                status_code=200,
-            )
 
     return app
 
