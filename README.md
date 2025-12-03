@@ -1,6 +1,6 @@
 # Optexity
 
-**Build custom browser agents** with AI-powered automation. Record browser interactions, extract data, and run complex workflows via a simple API.
+**Build custom browser agents** with AI-powered automation. Record browser interactions, extract data, and run complex workflows via a simple API. You can extract data from websites, fill out forms, do QA testing, and more.
 
 ## Features
 
@@ -193,6 +193,17 @@ On success, the inference server:
 ### Monitor Execution
 
 You can monitor the task on the dashboard. It will show the status, errors, outputs, and all the downloaded files.
+
+## Video Tutorial
+
+<iframe
+  width="100%"
+  height="400"
+  src="https://www.youtube.com/embed/q51r3idYtxo"
+  frameborder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowfullscreen
+/>
 
 ## Documentation
 
