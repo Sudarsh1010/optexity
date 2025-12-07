@@ -11,6 +11,7 @@ from optexity.inference.core.interaction.handle_agentic_task import handle_agent
 from optexity.inference.core.interaction.handle_click import handle_click_element
 from optexity.inference.core.interaction.handle_input import handle_input_text
 from optexity.inference.core.interaction.handle_select import handle_select_option
+from optexity.inference.core.interaction.handle_upload import handle_upload_file
 from optexity.inference.infra.browser import Browser
 from optexity.schema.actions.interaction_action import (
     CloseOverlayPopupAction,
@@ -87,6 +88,10 @@ async def run_interaction_action(
             )
         elif interaction_action.go_to_url:
             await handle_go_to_url(interaction_action.go_to_url, task, memory, browser)
+        elif interaction_action.upload_file:
+            await handle_upload_file(
+                interaction_action.upload_file, task, memory, browser
+            )
     except AssertLocatorPresenceException as e:
         await handle_assert_locator_presence_error(
             e, interaction_action, task, memory, browser, retries_left
