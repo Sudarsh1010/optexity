@@ -1,9 +1,7 @@
-import uuid
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 from optexity.schema.token_usage import TokenUsage
 

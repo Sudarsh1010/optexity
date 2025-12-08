@@ -22,7 +22,12 @@ from optexity.inference.core.run_extraction import run_extraction_action
 from optexity.inference.core.run_interaction import run_interaction_action
 from optexity.inference.core.run_python_script import run_python_script_action
 from optexity.inference.infra.browser import Browser
-from optexity.schema.automation import ActionNode, ForLoopNode, IfElseNode
+from optexity.schema.automation import (
+    ActionNode,
+    ForLoopNode,
+    IfElseNode,
+    SecureParameter,
+)
 from optexity.schema.memory import BrowserState, Memory, Variables
 from optexity.schema.task import Task
 
@@ -82,7 +87,13 @@ async def run_automation(task: Task, child_process_id: int):
 
             for action_node in action_nodes:
                 full_automation.append(action_node.model_dump())
-                await run_action_node(action_node, task, memory, browser)
+                await run_action_node(
+                    action_node,
+                    task.automation.parameters.secure_parameters,
+                    task,
+                    memory,
+                    browser,
+                )
         task.status = "success"
     except AssertionError as e:
         logger.error(f"Assertion error: {e}")
@@ -134,7 +145,11 @@ async def run_final_logging(
 
 
 async def run_action_node(
-    action_node: ActionNode, task: Task, memory: Memory, browser: Browser
+    action_node: ActionNode,
+    secure_parameters: dict[str, list[SecureParameter]],
+    task: Task,
+    memory: Memory,
+    browser: Browser,
 ):
 
     await asyncio.sleep(action_node.before_sleep_time)
@@ -143,8 +158,9 @@ async def run_action_node(
     memory.automation_state.step_index += 1
     memory.automation_state.try_index = 0
 
-    action_node.replace_variables(memory.variables.input_variables)
-    action_node.replace_variables(memory.variables.generated_variables)
+    await action_node.replace_variables(memory.variables.input_variables)
+    await action_node.replace_variables(secure_parameters)
+    await action_node.replace_variables(memory.variables.generated_variables)
 
     ## TODO: optimize this by taking screenshot and axtree only if needed
     browser_state_summary = await browser.get_browser_state_summary()

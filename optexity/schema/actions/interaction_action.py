@@ -53,7 +53,7 @@ class BaseAction(BaseModel):
         if self.xpath:
             self.xpath = self.xpath.replace(pattern, replacement)
         if self.command:
-            self.command = self.command.replace(pattern, replacement)
+            self.command = self.command.replace(pattern, replacement).strip('"')
 
 
 class CheckAction(BaseAction):
@@ -77,12 +77,13 @@ class SelectOptionAction(BaseAction):
         super().replace(pattern, replacement)
         if self.select_values:
             self.select_values = [
-                value.replace(pattern, replacement) for value in self.select_values
+                value.replace(pattern, replacement).strip('"')
+                for value in self.select_values
             ]
         if self.download_filename:
             self.download_filename = self.download_filename.replace(
                 pattern, replacement
-            )
+            ).strip('"')
         return self
 
 
@@ -104,7 +105,7 @@ class ClickElementAction(BaseAction):
         if self.download_filename:
             self.download_filename = self.download_filename.replace(
                 pattern, replacement
-            )
+            ).strip('"')
         return self
 
 
@@ -116,7 +117,7 @@ class InputTextAction(BaseAction):
     def replace(self, pattern: str, replacement: str):
         super().replace(pattern, replacement)
         if self.input_text:
-            self.input_text = self.input_text.replace(pattern, replacement)
+            self.input_text = self.input_text.replace(pattern, replacement).strip('"')
         return self
 
 
@@ -128,7 +129,7 @@ class DownloadUrlAsPdfAction(BaseModel):
         if self.download_filename:
             self.download_filename = self.download_filename.replace(
                 pattern, replacement
-            )
+            ).strip('"')
         return self
 
 
@@ -139,6 +140,11 @@ class ScrollAction(BaseModel):
 class UploadFileAction(BaseAction):
     file_path: str
 
+    def replace(self, pattern: str, replacement: str):
+        if self.file_path:
+            self.file_path = self.file_path.replace(pattern, replacement).strip('"')
+        return self
+
 
 class GoToUrlAction(BaseModel):
     url: str
@@ -146,7 +152,7 @@ class GoToUrlAction(BaseModel):
 
     def replace(self, pattern: str, replacement: str):
         if self.url:
-            self.url = self.url.replace(pattern, replacement)
+            self.url = self.url.replace(pattern, replacement).strip('"')
         return self
 
 
@@ -175,7 +181,7 @@ class AgenticTask(BaseModel):
 
     def replace(self, pattern: str, replacement: str):
         if self.task:
-            self.task = self.task.replace(pattern, replacement)
+            self.task = self.task.replace(pattern, replacement).strip('"')
         return self
 
 
@@ -263,4 +269,6 @@ class InteractionAction(BaseModel):
             self.close_overlay_popup.replace(pattern, replacement)
         if self.go_to_url:
             self.go_to_url.replace(pattern, replacement)
+        if self.upload_file:
+            self.upload_file.replace(pattern, replacement)
         return self

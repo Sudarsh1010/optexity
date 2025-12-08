@@ -4,7 +4,13 @@ from urllib.parse import urljoin
 
 import httpx
 
-from optexity.examples import download_pdf_url, i94, peachstate_medicaid, supabase_login
+from optexity.examples import (
+    download_pdf_url,
+    file_upload,
+    i94,
+    peachstate_medicaid,
+    supabase_login,
+)
 from optexity.utils.settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -22,6 +28,8 @@ def main(args):
         example = supabase_login
     elif args.example == "download_pdf_url":
         example = download_pdf_url
+    elif args.example == "file_upload":
+        example = file_upload
     else:
         raise ValueError(f"Invalid example: {args.example}")
     try:
@@ -57,7 +65,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--example",
         type=str,
-        choices=["i94", "peachstate_medicaid", "supabase_login", "download_pdf_url"],
+        choices=[
+            "i94",
+            "peachstate_medicaid",
+            "supabase_login",
+            "download_pdf_url",
+            "file_upload",
+        ],
         required=True,
     )
     parser.add_argument(
