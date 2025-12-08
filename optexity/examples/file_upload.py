@@ -1,7 +1,6 @@
 from optexity.schema.actions.assertion_action import AssertionAction, LLMAssertion
 from optexity.schema.actions.interaction_action import (
     ClickElementAction,
-    InputTextAction,
     InteractionAction,
     SelectOptionAction,
     UploadFileAction,
@@ -33,7 +32,7 @@ automation = Automation(
         ActionNode(
             interaction_action=InteractionAction(
                 upload_file=UploadFileAction(
-                    command="""get_by_role("button\", name="Test file")""",
+                    command="""get_by_role("button", name="Test file")""",
                     file_path="{file_path[0]}",
                     prompt_instructions="Click on the 'Test file' button.",
                 )
@@ -50,9 +49,10 @@ automation = Automation(
         ActionNode(
             assertion_action=AssertionAction(
                 llm=LLMAssertion(
-                    extraction_instructions="Check if the login was successful",
+                    extraction_instructions="Check if the file upload was successful",
                 )
-            )
+            ),
+            before_sleep_time=10.0,
         ),
     ],
 )
