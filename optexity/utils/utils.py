@@ -1,13 +1,29 @@
 import base64
 import logging
+import os
 from pathlib import Path
 from typing import List, Optional
 
 import aiofiles
 import pyotp
+from async_lru import alru_cache
+from onepassword import Client as OnePasswordClient
 from pydantic import create_model
 
 logger = logging.getLogger(__name__)
+
+_onepassword_client = None
+
+
+async def get_onepassword_client():
+    global _onepassword_client
+    if _onepassword_client is None:
+        _onepassword_client = await OnePasswordClient.authenticate(
+            auth=os.getenv("OP_SERVICE_ACCOUNT_TOKEN"),
+            integration_name="Optexity 1Password Integration",
+            integration_version="v1.0.0",
+        )
+    return _onepassword_client
 
 
 def build_model(schema: dict, model_name="AutoModel"):
@@ -48,3 +64,13 @@ async def save_and_clear_downloaded_files(content: bytes | str, filename: Path):
 def get_totp_code(totp_secret: str, digits: int = 6):
     totp = pyotp.TOTP(totp_secret, digits=digits)
     return totp.now()
+
+
+@alru_cache(maxsize=1000)
+async def get_onepassword_value(vault_name: str, item_name: str, field_name: str):
+    client = await get_onepassword_client()
+    str_value = await client.secrets.resolve(
+        f"op://{vault_name}/{item_name}/{field_name}"
+    )
+
+    return str_value

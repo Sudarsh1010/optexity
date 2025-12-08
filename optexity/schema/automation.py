@@ -1,7 +1,5 @@
-import os
 from typing import Literal
 
-from onepassword import Client as OnePasswordClient
 from pydantic import BaseModel, Field, model_validator
 
 from optexity.schema.actions.assertion_action import AssertionAction
@@ -9,20 +7,7 @@ from optexity.schema.actions.extraction_action import ExtractionAction
 from optexity.schema.actions.interaction_action import InteractionAction
 from optexity.schema.actions.misc_action import PythonScriptAction
 from optexity.schema.actions.two_factor_auth_action import Fetch2faAction
-from optexity.utils.utils import get_totp_code
-
-_onepassword_client = None
-
-
-async def get_onepassword_client():
-    global _onepassword_client
-    if _onepassword_client is None:
-        _onepassword_client = await OnePasswordClient.authenticate(
-            auth=os.getenv("OP_SERVICE_ACCOUNT_TOKEN"),
-            integration_name="Optexity 1Password Integration",
-            integration_version="v1.0.0",
-        )
-    return _onepassword_client
+from optexity.utils.utils import get_onepassword_value, get_totp_code
 
 
 class OnePasswordParameter(BaseModel):
@@ -156,9 +141,10 @@ class ActionNode(BaseModel):
 
                 if isinstance(value, SecureParameter):
                     if value.onepassword:
-                        client = await get_onepassword_client()
-                        str_value = await client.secrets.resolve(
-                            f"op://{value.onepassword.vault_name}/{value.onepassword.item_name}/{value.onepassword.field_name}"
+                        str_value = await get_onepassword_value(
+                            value.onepassword.vault_name,
+                            value.onepassword.item_name,
+                            value.onepassword.field_name,
                         )
                         if value.onepassword.type == "totp_secret":
                             str_value = get_totp_code(

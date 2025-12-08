@@ -19,7 +19,8 @@ dependencies = [
     "black",
     "isort",
     "aiofiles",
-    "onepassword-sdk"
+    "onepassword-sdk",
+    "async_lru"
 ]
 
 [tool.setuptools.packages.find]
