@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import aiofiles
+import pyotp
 from pydantic import create_model
 
 logger = logging.getLogger(__name__)
@@ -42,3 +43,8 @@ async def save_and_clear_downloaded_files(content: bytes | str, filename: Path):
             await f.write(content)
     else:
         logger.error(f"Unsupported content type: {type(content)}")
+
+
+def get_totp_code(totp_secret: str, digits: int = 6):
+    totp = pyotp.TOTP(totp_secret, digits=digits)
+    return totp.now()

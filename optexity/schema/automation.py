@@ -9,6 +9,7 @@ from optexity.schema.actions.extraction_action import ExtractionAction
 from optexity.schema.actions.interaction_action import InteractionAction
 from optexity.schema.actions.misc_action import PythonScriptAction
 from optexity.schema.actions.two_factor_auth_action import Fetch2faAction
+from optexity.utils.utils import get_totp_code
 
 _onepassword_client = None
 
@@ -28,6 +29,16 @@ class OnePasswordParameter(BaseModel):
     vault_name: str
     item_name: str
     field_name: str
+    type: Literal["raw", "totp_secret"] = "raw"
+    digits: int | None = None
+
+    @model_validator(mode="after")
+    def validate_onepassword_parameter(self):
+        if self.type == "totp_secret":
+            assert self.digits is not None, "digits must be provided for totp_secret"
+        else:
+            assert self.digits is None, "digits must not be provided for raw"
+        return self
 
 
 class AmazonSecretsManagerParameter(BaseModel):
@@ -40,18 +51,24 @@ class AmazonSecretsManagerParameter(BaseModel):
         raise NotImplementedError("Amazon Secrets Manager is not implemented yet")
 
 
+class TOTPParameter(BaseModel):
+    totp_secret: str
+    digits: int = 6
+
+
 class SecureParameter(BaseModel):
     onepassword: OnePasswordParameter | None = None
     amazon_secrets_manager: AmazonSecretsManagerParameter | None = None
+    totp: TOTPParameter | None = None
 
     @model_validator(mode="after")
-    def validate_secure_parameter(cls, model: "SecureParameter"):
-        non_null = [k for k, v in model.model_dump().items() if v is not None]
+    def validate_secure_parameter(self):
+        non_null = [k for k, v in self.model_dump().items() if v is not None]
         if len(non_null) != 1:
             raise ValueError(
-                "Exactly one of onepassword or amazon_secrets_manager must be provided"
+                "Exactly one of onepassword or amazon_secrets_manager or totp must be provided"
             )
-        return model
+        return self
 
 
 class ActionNode(BaseModel):
@@ -143,9 +160,18 @@ class ActionNode(BaseModel):
                         str_value = await client.secrets.resolve(
                             f"op://{value.onepassword.vault_name}/{value.onepassword.item_name}/{value.onepassword.field_name}"
                         )
+                        if value.onepassword.type == "totp_secret":
+                            str_value = get_totp_code(
+                                str_value, value.onepassword.digits
+                            )
+
                     elif value.amazon_secrets_manager:
                         raise NotImplementedError(
                             "Amazon Secrets Manager is not implemented yet"
+                        )
+                    elif value.totp:
+                        str_value = get_totp_code(
+                            value.totp.totp_secret, value.totp.digits
                         )
 
                 elif isinstance(value, str):
