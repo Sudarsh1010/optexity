@@ -1,4 +1,5 @@
 import logging
+import re
 
 from optexity.inference.core.interaction.utils import (
     command_based_action_with_retry,
@@ -6,7 +7,7 @@ from optexity.inference.core.interaction.utils import (
     handle_download,
 )
 from optexity.inference.infra.browser import Browser
-from optexity.schema.actions.interaction_action import SelectOptionAction
+from optexity.schema.actions.interaction_action import Locator, SelectOptionAction
 from optexity.schema.memory import Memory
 from optexity.schema.task import Task
 
@@ -40,6 +41,40 @@ async def handle_select_option(
         await select_option_index(select_option_action, browser, memory, task)
 
 
+async def smart_select(locator: Locator, patterns: list[str]):
+    # Get all options from the <select>
+    options = await locator.evaluate(
+        """
+        sel => Array.from(sel.options).map(o => ({
+            value: o.value,
+            label: o.label || o.textContent
+        }))
+    """
+    )
+
+    matched_values = []
+
+    for p in patterns:
+        # If pattern contains regex characters, treat as regex
+        is_regex = p.startswith("^") or p.endswith("$") or ".*" in p
+
+        if is_regex:
+            regex = re.compile(p)
+            for opt in options:
+                if regex.search(opt["value"]) or regex.search(opt["label"]):
+                    matched_values.append(opt["value"])
+        else:
+            # exact match
+            for opt in options:
+                if opt["value"] == p or opt["label"] == p:
+                    matched_values.append(opt["value"])
+
+    if not matched_values:
+        matched_values = patterns
+
+    return matched_values
+
+
 async def select_option_locator(
     select_option_action: SelectOptionAction,
     browser: Browser,
@@ -49,8 +84,15 @@ async def select_option_locator(
 ):
     async def _actual_select_option():
         locator = await browser.get_locator_from_command(select_option_action.command)
+
+        matched_values = await smart_select(locator, select_option_action.select_values)
+
+        logger.debug(
+            f"Matched values for {select_option_action.command}: {matched_values}"
+        )
+
         await locator.select_option(
-            select_option_action.select_values,
+            matched_values,
             no_wait_after=True,
             timeout=max_timeout_seconds_per_try * 1000,
         )

@@ -122,7 +122,7 @@ async def handle_llm_extraction(
                 ]
             else:
                 raise ValueError(
-                    f"Output variable {output_variable_name} must be a string or a list of strings"
+                    f"Output variable {output_variable_name} must be a string or a list of strings. Extracted values: {response_dict[output_variable_name]}"
                 )
     return output_data
 
