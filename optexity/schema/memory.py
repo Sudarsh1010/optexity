@@ -74,3 +74,8 @@ class Memory(BaseModel):
     )
     downloads: list[Path] = Field(default_factory=list)
     final_screenshot: str | None = Field(default=None)
+
+    model_config = {
+        "arbitrary_types_allowed": True,
+        "exclude": {"download_lock"},
+    }

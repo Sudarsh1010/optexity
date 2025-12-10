@@ -14,6 +14,7 @@ from optexity.inference.core.interaction.handle_select import handle_select_opti
 from optexity.inference.core.interaction.handle_upload import handle_upload_file
 from optexity.inference.infra.browser import Browser
 from optexity.schema.actions.interaction_action import (
+    CloseCurrentTabAction,
     CloseOverlayPopupAction,
     DownloadUrlAsPdfAction,
     GoBackAction,
@@ -97,10 +98,23 @@ async def run_interaction_action(
                 interaction_action.max_timeout_seconds_per_try,
                 interaction_action.max_tries,
             )
+        elif interaction_action.close_current_tab:
+            await handle_close_current_tab(
+                interaction_action.close_current_tab, memory, browser
+            )
     except AssertLocatorPresenceException as e:
         await handle_assert_locator_presence_error(
             e, interaction_action, task, memory, browser, retries_left
         )
+
+
+async def handle_close_current_tab(
+    close_current_tab_action: CloseCurrentTabAction, memory: Memory, browser: Browser
+):
+    page = await browser.get_current_page()
+    if page is None:
+        return
+    await page.close()
 
 
 async def handle_go_to_url(

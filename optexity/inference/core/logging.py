@@ -143,15 +143,21 @@ async def save_downloads_in_server(task: Task, memory: Memory):
             "task_id": task.task_id,  # form field
         }
 
-        tar_bytes = create_tar_in_memory(task.downloads_directory, task.task_id)
         files = []
-        # add tar.gz
-        files.append(
-            (
-                "compressed_downloads",
-                (f"{task.task_id}.tar.gz", tar_bytes, "application/gzip"),
+        downloads = [
+            download
+            for download in task.downloads_directory.iterdir()
+            if download.is_file()
+        ]
+        if len(downloads) > 0:
+            tar_bytes = create_tar_in_memory(task.downloads_directory, task.task_id)
+            # add tar.gz
+            files.append(
+                (
+                    "compressed_downloads",
+                    (f"{task.task_id}.tar.gz", tar_bytes, "application/gzip"),
+                )
             )
-        )
 
         # add screenshots
         for data in memory.variables.output_data:
@@ -167,16 +173,20 @@ async def save_downloads_in_server(task: Task, memory: Memory):
                     )
                 )
 
-        files.append(
-            (
-                "screenshots",
+        if memory.final_screenshot:
+            files.append(
                 (
-                    "final_screenshot.png",
-                    base64.b64decode(memory.final_screenshot),
-                    "image/png",
-                ),
+                    "screenshots",
+                    (
+                        "final_screenshot.png",
+                        base64.b64decode(memory.final_screenshot),
+                        "image/png",
+                    ),
+                )
             )
-        )
+
+        if len(files) == 0:
+            return
 
         async with httpx.AsyncClient() as client:
 
