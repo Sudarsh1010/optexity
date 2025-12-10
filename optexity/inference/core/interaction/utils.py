@@ -84,11 +84,15 @@ async def handle_download(
     if page is None:
         logger.error("No page found for current page")
         return
-    download_path = task.downloads_directory / download_filename
+    download_path: Path = task.downloads_directory / download_filename
     async with page.expect_download() as download_info:
         await func()
         download = await download_info.value
+
         if download:
+            temp_path = await download.path()
+            async with memory.download_lock:
+                memory.raw_downloads[temp_path] = (True, None)
 
             await download.save_as(download_path)
             memory.downloads.append(download_path)

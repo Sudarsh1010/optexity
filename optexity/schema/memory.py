@@ -1,6 +1,8 @@
+import asyncio
 from pathlib import Path
 from typing import Any
 
+from playwright.async_api import Download
 from pydantic import BaseModel, Field
 
 from optexity.schema.token_usage import TokenUsage
@@ -66,5 +68,9 @@ class Memory(BaseModel):
     automation_state: AutomationState = Field(default_factory=AutomationState)
     browser_states: list[BrowserState] = Field(default_factory=list)
     token_usage: TokenUsage = Field(default_factory=TokenUsage)
+    download_lock: asyncio.Lock = Field(default_factory=asyncio.Lock)
+    raw_downloads: dict[Path, tuple[bool, Download | None]] = Field(
+        default_factory=dict
+    )
     downloads: list[Path] = Field(default_factory=list)
     final_screenshot: str | None = Field(default=None)

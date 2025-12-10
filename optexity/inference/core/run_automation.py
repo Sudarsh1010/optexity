@@ -6,6 +6,7 @@ from copy import deepcopy
 from patchright._impl._errors import TimeoutError as PatchrightTimeoutError
 from playwright._impl._errors import TimeoutError as PlaywrightTimeoutError
 
+from optexity.inference.core.interaction.utils import clean_download
 from optexity.inference.core.logging import (
     complete_task_in_server,
     delete_local_data,
@@ -57,6 +58,7 @@ async def run_automation(task: Task, child_process_id: int):
         await start_task_in_server(task)
         memory = Memory(variables=Variables(input_variables=task.input_parameters))
         browser = Browser(
+            memory=memory,
             headless=False,
             channel=task.automation.browser_channel,
             debug_port=9222 + child_process_id,
@@ -104,6 +106,8 @@ async def run_automation(task: Task, child_process_id: int):
         task.error = str(e)
         task.status = "failed"
     finally:
+        if task and memory:
+            await run_final_downloads_check(task, memory)
         if memory and browser:
             await run_final_logging(task, memory, browser, child_process_id)
         if browser:
@@ -111,6 +115,38 @@ async def run_automation(task: Task, child_process_id: int):
 
     logger.info(f"Task {task.task_id} completed with status {task.status}")
     logging.getLogger(current_module).removeHandler(file_handler)
+
+
+async def run_final_downloads_check(task: Task, memory: Memory):
+
+    try:
+        logger.debug("Running final downloads check")
+        max_tries = 10
+        tries = 0
+        while tries < max_tries:
+            tries += 1
+            for temp_download_path, (
+                is_downloaded,
+                download,
+            ) in memory.raw_downloads.items():
+                if is_downloaded:
+                    continue
+
+                download_path = task.downloads_directory / download.suggested_filename
+                await download.save_as(download_path)
+                memory.downloads.append(download_path)
+                await clean_download(download_path)
+                memory.raw_downloads[temp_download_path] = (True, download)
+
+            if len(memory.downloads) >= task.automation.expected_downloads:
+                break
+            await asyncio.sleep(1)
+    except Exception as e:
+        logger.error(f"Error running final downloads check: {e}")
+
+    logger.warning(
+        f"Found {len(memory.downloads)} downloads, expected {task.automation.expected_downloads}"
+    )
 
 
 async def run_final_logging(

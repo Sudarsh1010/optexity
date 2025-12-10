@@ -190,6 +190,7 @@ class Parameters(BaseModel):
 
 class Automation(BaseModel):
     browser_channel: Literal["chromium", "chrome"] = "chromium"
+    expected_downloads: int = 0
     url: str
     parameters: Parameters
     nodes: list[ActionNode | ForLoopNode | IfElseNode]

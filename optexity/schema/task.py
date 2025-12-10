@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Literal, Optional
 
 from PIL import Image
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, computed_field, model_validator
 
 from optexity.schema.automation import Automation
 from optexity.schema.token_usage import TokenUsage
@@ -49,10 +49,6 @@ class Task(BaseModel):
     status: Literal["queued", "allocated", "running", "success", "failed", "cancelled"]
 
     save_directory: Path = Field(default=Path("/tmp/optexity"))
-    task_directory: Path | None = Field(default=None)
-    logs_directory: Path | None = Field(default=None)
-    downloads_directory: Path | None = Field(default=None)
-    log_file_path: Path | None = Field(default=None)
 
     dedup_key: str = Field(default_factory=lambda: str(uuid.uuid4()))
     retry_count: int = 0
@@ -62,6 +58,26 @@ class Task(BaseModel):
 
     class Config:
         json_encoders = {datetime: lambda v: v.isoformat() if v is not None else None}
+
+    @computed_field
+    @property
+    def task_directory(self) -> Path:
+        return self.save_directory / str(self.task_id)
+
+    @computed_field
+    @property
+    def logs_directory(self) -> Path:
+        return self.task_directory / "logs"
+
+    @computed_field
+    @property
+    def downloads_directory(self) -> Path:
+        return self.task_directory / "downloads"
+
+    @computed_field
+    @property
+    def log_file_path(self) -> Path:
+        return self.logs_directory / "optexity.log"
 
     @model_validator(mode="after")
     def validate_unique_parameters(self):
@@ -93,10 +109,6 @@ class Task(BaseModel):
 
     @model_validator(mode="after")
     def set_dependent_paths(self):
-        self.task_directory = self.save_directory / str(self.task_id)
-        self.logs_directory = self.task_directory / "logs"
-        self.downloads_directory = self.task_directory / "downloads"
-        self.log_file_path = self.logs_directory / "optexity.log"
 
         self.logs_directory.mkdir(parents=True, exist_ok=True)
         self.downloads_directory.mkdir(parents=True, exist_ok=True)

@@ -2,8 +2,6 @@ import asyncio
 import base64
 import json
 import logging
-import os
-import uuid
 from typing import Literal
 
 from browser_use import Agent, BrowserSession, ChatGoogle
@@ -12,22 +10,15 @@ from patchright._impl._errors import TimeoutError as PatchrightTimeoutError
 from playwright._impl._errors import TimeoutError as PlaywrightTimeoutError
 from playwright.async_api import Download, Locator, Request, Response
 
-from optexity.schema.memory import NetworkRequest, NetworkResponse
+from optexity.schema.memory import Memory, NetworkRequest, NetworkResponse
 
 logger = logging.getLogger(__name__)
-
-
-async def handle_random_download(download: Download):
-    return
-    target_path = "downloads_directory" / str(uuid.uuid4())
-    os.makedirs("downloads_directory", exist_ok=True)
-    await download.save_as(target_path)
-    print("Downloaded:", target_path)
 
 
 class Browser:
     def __init__(
         self,
+        memory: Memory,
         user_data_dir: str = None,
         headless: bool = False,
         proxy: str = None,
@@ -54,7 +45,7 @@ class Browser:
         self.cdp_url = f"http://localhost:{self.debug_port}"
         self.backend_agent = None
         self.channel = channel
-
+        self.memory = memory
         self.page_to_target_id = []
         self.previous_total_pages = 0
 
@@ -89,8 +80,14 @@ class Browser:
             async def log_request(req: Request):
                 await self.log_request(req)
 
+            async def handle_random_download(download: Download):
+                temp_path = await download.path()
+                async with self.memory.download_lock:
+                    if temp_path not in self.memory.raw_downloads:
+                        self.memory.raw_downloads[temp_path] = (False, download)
+
             self.context.on("request", log_request)
-            # self.context.on("page", lambda p: p.on("download", handle_random_download))
+            self.context.on("page", lambda p: p.on("download", handle_random_download))
 
             self.page = await self.context.new_page()
 
