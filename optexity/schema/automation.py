@@ -176,10 +176,11 @@ class ForLoopNode(BaseModel):
     nodes: list[ActionNode]
 
 
+## TODO:
 class IfElseNode(BaseModel):
     condition: str
-    if_nodes: list[ActionNode | "IfElseNode"]
-    else_nodes: list[ActionNode | "IfElseNode"] = []
+    if_nodes: list[ActionNode]
+    else_nodes: list[ActionNode] = []
 
 
 class Parameters(BaseModel):

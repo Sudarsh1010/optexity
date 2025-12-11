@@ -248,7 +248,6 @@ class Browser:
             logger.error(f"Could not get body: {e}")
 
     async def attach_network_listeners(self):
-        return
         page = await self.get_current_page()
 
         # remove old listeners first

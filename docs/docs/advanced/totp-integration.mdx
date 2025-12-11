@@ -1,0 +1,48 @@
+---
+title: TOTP Integration
+description: Using TOTP to store and retrieve secrets in your automations
+---
+
+Optexity support TOTP integration for two-factor authentication. You can use TOTP from any authenticator app like Google Authenticator, Microsoft Authenticator, Authy, etc.
+
+## How to extract TOTP code from your authenticator app
+
+Please follow this awesome guide to extract TOTP code from your authenticator app: https://cavalloj.medium.com/totp-secret-extraction-from-qr-codes-ee097b4c687f
+
+After following the guide, you will get a TOTP secret. You can use this secret in your automations.
+
+
+## Simple way to use TOTP in your automations
+
+You can hardcode the TOTP secret in your automation. It should be provided in the `secure_parameters` dictionary.
+
+```json
+"secure_parameters": {
+  "authenticator_code": [
+    {
+      "totp": {
+        "totp_secret": "TOTP_SECRET"
+      }
+    }
+  ]
+}
+```
+
+## Secure way to use TOTP in your automations
+
+More secure way to use TOTP in your automations is to store the TOTP secret in One Password. You can learn more about how to do this in the [One Password Integration](/docs/advanced/onepassword) documentation.
+
+```json
+"secure_parameters": {
+  "authenticator_code": [
+    {
+      "onepassword": {
+        "type": "totp_secret",
+        "item_name": "item_name_in_one_password",
+        "field_name": "authenticator_code_field_name",
+        "vault_name": "vault_name_in_one_password"
+      },
+    }
+  ]
+}
+```

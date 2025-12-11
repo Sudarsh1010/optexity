@@ -46,7 +46,9 @@
                             "/docs/timing-retries",
                             "/docs/downloads-files",
                             "/docs/agentic-tasks",
-                            "/docs/best-practices"
+                            "/docs/best-practices",
+                            "/docs/advanced/onepassword",
+                            "/docs/advanced/totp-integration"
                         ]
                     }
                 ]
