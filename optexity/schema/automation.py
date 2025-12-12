@@ -189,6 +189,14 @@ class ForLoopNode(BaseModel):
             used_old_format = False
 
             for item in raw_nodes:
+                if (
+                    isinstance(item, ActionNode)
+                    or isinstance(item, ForLoopNode)
+                    or isinstance(item, IfElseNode)
+                ):
+                    new_nodes.append(item)
+                    continue
+
                 # --- new format: already has a type ---
                 if isinstance(item, dict) and "type" in item:
                     new_nodes.append(item)
@@ -234,6 +242,14 @@ class IfElseNode(BaseModel):
             used_old_format = False
 
             for item in raw_nodes:
+                if (
+                    isinstance(item, ActionNode)
+                    or isinstance(item, ForLoopNode)
+                    or isinstance(item, IfElseNode)
+                ):
+                    new_nodes.append(item)
+                    continue
+
                 # --- new format: already has a type ---
                 if isinstance(item, dict) and "type" in item:
                     new_nodes.append(item)
@@ -284,6 +300,14 @@ class Automation(BaseModel):
         used_old_format = False
 
         for item in raw_nodes:
+            if (
+                isinstance(item, ActionNode)
+                or isinstance(item, ForLoopNode)
+                or isinstance(item, IfElseNode)
+            ):
+                new_nodes.append(item)
+                continue
+
             # --- new format: already has a type ---
             if isinstance(item, dict) and "type" in item:
                 new_nodes.append(item)
