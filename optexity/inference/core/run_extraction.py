@@ -112,17 +112,19 @@ async def handle_llm_extraction(
 
     if llm_extraction.output_variable_names is not None:
         for output_variable_name in llm_extraction.output_variable_names:
-            if isinstance(response_dict[output_variable_name], list):
-                memory.variables.generated_variables[output_variable_name] = (
-                    response_dict[output_variable_name]
-                )
-            elif isinstance(response_dict[output_variable_name], str):
-                memory.variables.generated_variables[output_variable_name] = [
-                    response_dict[output_variable_name]
-                ]
+            v = response_dict[output_variable_name]
+            if isinstance(v, list):
+                memory.variables.generated_variables[output_variable_name] = v
+            elif (
+                isinstance(v, str)
+                or isinstance(v, int)
+                or isinstance(v, float)
+                or isinstance(v, bool)
+            ):
+                memory.variables.generated_variables[output_variable_name] = [v]
             else:
                 raise ValueError(
-                    f"Output variable {output_variable_name} must be a string or a list of strings. Extracted values: {response_dict[output_variable_name]}"
+                    f"Output variable {output_variable_name} must be a string, int, float, bool, or a list of strings, ints, floats, or bools. Extracted values: {response_dict[output_variable_name]}"
                 )
     return output_data
 
