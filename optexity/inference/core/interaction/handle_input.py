@@ -57,6 +57,9 @@ async def input_text_locator(
             timeout=max_timeout_seconds_per_try * 1000,
         )
 
+    if input_text_action.press_enter:
+        await locator.press("Enter")
+
 
 async def input_text_index(
     input_text_action: InputTextAction, browser: Browser, memory: Memory

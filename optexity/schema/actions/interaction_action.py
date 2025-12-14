@@ -1,3 +1,4 @@
+from enum import Enum, unique
 from typing import Literal
 from uuid import uuid4
 
@@ -113,6 +114,13 @@ class InputTextAction(BaseAction):
     input_text: str | None = None
     is_slider: bool = False
     fill_or_type: Literal["fill", "type"] = "fill"
+    press_enter: bool = False
+
+    @model_validator(mode="after")
+    def validate_press_enter(self):
+        if self.press_enter and self.command is None:
+            raise ValueError("command is required when press_enter is True")
+        return self
 
     def replace(self, pattern: str, replacement: str):
         super().replace(pattern, replacement)
@@ -172,6 +180,19 @@ class CloseAllButLastTabAction(BaseModel):
     pass
 
 
+@unique
+class KeyPressType(str, Enum):
+    ENTER = "Enter"
+    TAB = "Tab"
+    DELETE = "Delete"
+    BACKSPACE = "Backspace"
+    ESCAPE = "Escape"
+
+
+class KeyPressAction(BaseModel):
+    type: KeyPressType
+
+
 class AgenticTask(BaseModel):
     task: str
     max_steps: int
@@ -211,6 +232,7 @@ class InteractionAction(BaseModel):
     close_all_but_last_tab: CloseAllButLastTabAction | None = None
     agentic_task: AgenticTask | None = None
     close_overlay_popup: CloseOverlayPopupAction | None = None
+    key_press: KeyPressAction | None = None
 
     @model_validator(mode="after")
     def validate_one_interaction(cls, model: "InteractionAction"):
@@ -230,12 +252,13 @@ class InteractionAction(BaseModel):
             "close_all_but_last_tab": model.close_all_but_last_tab,
             "agentic_task": model.agentic_task,
             "close_overlay_popup": model.close_overlay_popup,
+            "key_press": model.key_press,
         }
         non_null = [k for k, v in provided.items() if v is not None]
 
         if len(non_null) != 1:
             raise ValueError(
-                "Exactly one of click_element, input_text, select_option, check, download_url_as_pdf, scroll, upload_file, go_to_url, go_back, switch_tab, close_current_tab, close_all_but_last_tab, or agentic_task must be provided"
+                "Exactly one of click_element, input_text, select_option, check, download_url_as_pdf, scroll, upload_file, go_to_url, go_back, switch_tab, close_current_tab, close_all_but_last_tab, key_press, or agentic_task must be provided"
             )
 
         if model.start_2fa_timer:
@@ -271,4 +294,5 @@ class InteractionAction(BaseModel):
             self.go_to_url.replace(pattern, replacement)
         if self.upload_file:
             self.upload_file.replace(pattern, replacement)
+
         return self

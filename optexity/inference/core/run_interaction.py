@@ -11,6 +11,7 @@ from optexity.inference.core.interaction.handle_agentic_task import handle_agent
 from optexity.inference.core.interaction.handle_check import handle_check_element
 from optexity.inference.core.interaction.handle_click import handle_click_element
 from optexity.inference.core.interaction.handle_input import handle_input_text
+from optexity.inference.core.interaction.handle_keypress import handle_key_press
 from optexity.inference.core.interaction.handle_select import handle_select_option
 from optexity.inference.core.interaction.handle_upload import handle_upload_file
 from optexity.inference.infra.browser import Browser
@@ -112,6 +113,8 @@ async def run_interaction_action(
             await handle_close_current_tab(
                 interaction_action.close_current_tab, memory, browser
             )
+        elif interaction_action.key_press:
+            await handle_key_press(interaction_action.key_press, memory, browser)
     except AssertLocatorPresenceException as e:
         await handle_assert_locator_presence_error(
             e, interaction_action, task, memory, browser, retries_left

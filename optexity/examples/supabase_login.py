@@ -66,26 +66,27 @@ automation = Automation(
                 input_text=InputTextAction(
                     command="""get_by_role("textbox", name="Password")""",
                     input_text="{password[0]}",
+                    press_enter=True,
                     prompt_instructions="Enter the password",
                 )
             ),
         ),
-        ActionNode(
-            type="action_node",
-            interaction_action=InteractionAction(
-                click_element=ClickElementAction(
-                    command="""get_by_role("button", name="Sign In")""",
-                    prompt_instructions="Click the Sign In button",
-                )
-            ),
-        ),
-        ActionNode(
-            type="action_node",
-            assertion_action=AssertionAction(
-                llm=LLMAssertion(
-                    extraction_instructions="Check if the login was successful",
-                )
-            ),
-        ),
+        # ActionNode(
+        #     type="action_node",
+        #     interaction_action=InteractionAction(
+        #         click_element=ClickElementAction(
+        #             command="""get_by_role("button", name="Sign In")""",
+        #             prompt_instructions="Click the Sign In button",
+        #         )
+        #     ),
+        # ),
+        # ActionNode(
+        #     type="action_node",
+        #     assertion_action=AssertionAction(
+        #         llm=LLMAssertion(
+        #             extraction_instructions="Check if the login was successful",
+        #         )
+        #     ),
+        # ),
     ],
 )
