@@ -38,7 +38,7 @@ class Task(BaseModel):
     recording_id: str
     endpoint_name: str
     automation: Automation
-    input_parameters: dict[str, list[str]]
+    input_parameters: dict[str, list[str | int | float | bool]]
     unique_parameter_names: list[str]
     unique_parameters: dict[str, list[str]] | None = None
     created_at: datetime
@@ -47,7 +47,7 @@ class Task(BaseModel):
     completed_at: Optional[datetime] = None
     error: Optional[str] = None
     status: Literal["queued", "allocated", "running", "success", "failed", "cancelled"]
-
+    is_cloud: bool = False
     save_directory: Path = Field(default=Path("/tmp/optexity"))
 
     dedup_key: str = Field(default_factory=lambda: str(uuid.uuid4()))
