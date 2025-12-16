@@ -174,6 +174,28 @@ class Browser:
         await self.backend_agent.multi_act([action_model])
         return True, total_time
 
+    async def close_current_tab(self):
+        if self.context is None:
+            return None
+
+        pages = self.context.pages
+
+        if len(pages) == 1:
+            logger.warning("Atleast one tab should be open, skipping close current tab")
+            return False
+
+        tab_id_after_close = self.page_to_target_id[-2][-4:]
+        last_page = pages[-1]
+        await last_page.close()
+
+        action_model = self.backend_agent.ActionModel(
+            **{"switch": {"tab_id": tab_id_after_close}}
+        )
+        await self.backend_agent.multi_act([action_model])
+
+        await last_page.close()
+        self.page_to_target_id.pop()
+
     async def get_locator_from_command(self, command: str) -> Locator:
         page = await self.get_current_page()
         if page is None:
