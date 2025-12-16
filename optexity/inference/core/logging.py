@@ -112,6 +112,7 @@ async def save_output_data_in_server(task: Task, memory: Memory):
             "task_id": task.task_id,
             "output_data": output_data,
             "final_screenshot": memory.final_screenshot,
+            "for_loop_status": memory.variables.for_loop_status,
         }
 
         async with httpx.AsyncClient(timeout=30.0) as client:

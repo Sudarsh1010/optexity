@@ -10,6 +10,7 @@ from PIL import Image
 from pydantic import BaseModel, Field, computed_field, model_validator
 
 from optexity.schema.automation import Automation
+from optexity.schema.memory import ForLoopStatus
 from optexity.schema.token_usage import TokenUsage
 
 
@@ -171,6 +172,7 @@ class TaskOutputDataRequest(BaseModel):
     task_id: str
     output_data: list[dict]
     final_screenshot: str | None
+    for_loop_status: list[list[ForLoopStatus]] | None = None
 
     @model_validator(mode="after")
     def must_have_valid_final_screenshot(self):

@@ -29,7 +29,7 @@ from optexity.schema.automation import (
     IfElseNode,
     SecureParameter,
 )
-from optexity.schema.memory import BrowserState, Memory, Variables
+from optexity.schema.memory import BrowserState, ForLoopStatus, Memory, Variables
 from optexity.schema.task import Task
 
 logger = logging.getLogger(__name__)
@@ -75,25 +75,19 @@ async def run_automation(task: Task, child_process_id: int):
 
         for node in automation.nodes:
             if isinstance(node, ForLoopNode):
-                action_nodes = expand_for_loop_node(node, memory)
-                logger.debug(
-                    f"Expanded for loop node {node.variable_name} into {len(action_nodes)} nodes"
-                )
+                await handle_for_loop_node(node, memory, task, browser, full_automation)
             elif isinstance(node, IfElseNode):
                 await handle_if_else_node(node, memory, task, browser, full_automation)
-                continue
             else:
-                action_nodes = [node]
-
-            for action_node in action_nodes:
-                full_automation.append(action_node.model_dump())
+                full_automation.append(node.model_dump())
                 await run_action_node(
-                    action_node,
+                    node,
                     task.automation.parameters.secure_parameters,
                     task,
                     memory,
                     browser,
                 )
+
         task.status = "success"
     except AssertionError as e:
         logger.error(f"Assertion error: {e}")
@@ -274,33 +268,6 @@ async def sleep_for_page_to_load(browser: Browser, sleep_time: float):
         pass
 
 
-def expand_for_loop_node(
-    for_loop_node: ForLoopNode, memory: Memory
-) -> list[ActionNode]:
-
-    if for_loop_node.variable_name in memory.variables.input_variables:
-        values = memory.variables.input_variables[for_loop_node.variable_name]
-    elif for_loop_node.variable_name in memory.variables.generated_variables:
-        values = memory.variables.generated_variables[for_loop_node.variable_name]
-    else:
-        raise ValueError(
-            f"Variable name {for_loop_node.variable_name} not found in input variables or generated variables"
-        )
-
-    new_nodes = []
-    for index in range(len(values)):
-        for action_node in for_loop_node.nodes:
-            new_node = deepcopy(action_node)
-            new_node.replace(
-                f"{{{for_loop_node.variable_name}[index]}}",
-                f"{{{for_loop_node.variable_name}[{index}]}}",
-            )
-            new_node.replace(f"{{index_of({for_loop_node.variable_name})}}", f"{index}")
-            new_nodes.append(new_node)
-
-    return new_nodes
-
-
 def evaluate_condition(condition: str, memory: Memory) -> bool:
     return eval(
         condition,
@@ -315,7 +282,7 @@ async def handle_if_else_node(
     task: Task,
     browser: Browser,
     full_automation: list[ActionNode],
-) -> list[ActionNode]:
+):
     logger.debug(
         f"Handling if else node {if_else_node.condition} with if nodes {if_else_node.if_nodes} and else nodes {if_else_node.else_nodes}"
     )
@@ -337,4 +304,103 @@ async def handle_if_else_node(
             )
         elif isinstance(node, IfElseNode):
             await handle_if_else_node(node, memory, task, browser, full_automation)
+        elif isinstance(node, ForLoopNode):
+            await handle_for_loop_node(node, memory, task, browser, full_automation)
+
     logger.debug(f"Finished handling if else node {if_else_node.condition}")
+
+
+async def handle_for_loop_node(
+    for_loop_node: ForLoopNode,
+    memory: Memory,
+    task: Task,
+    browser: Browser,
+    full_automation: list[ActionNode],
+):
+    if for_loop_node.variable_name in memory.variables.input_variables:
+        values = memory.variables.input_variables[for_loop_node.variable_name]
+    elif for_loop_node.variable_name in memory.variables.generated_variables:
+        values = memory.variables.generated_variables[for_loop_node.variable_name]
+    else:
+        raise ValueError(
+            f"Variable name {for_loop_node.variable_name} not found in input variables or generated variables"
+        )
+    memory.variables.for_loop_status.append([])
+    for index in range(len(values)):
+
+        try:
+            for node in for_loop_node.nodes:
+                new_node = deepcopy(node)
+                new_node.replace(
+                    f"{{{for_loop_node.variable_name}[index]}}",
+                    f"{{{for_loop_node.variable_name}[{index}]}}",
+                )
+                new_node.replace(
+                    f"{{index_of({for_loop_node.variable_name})}}", f"{index}"
+                )
+
+                if isinstance(new_node, IfElseNode):
+                    await handle_if_else_node(
+                        new_node, memory, task, browser, full_automation
+                    )
+
+                else:
+                    full_automation.append(new_node.model_dump())
+                    await run_action_node(
+                        new_node,
+                        task.automation.parameters.secure_parameters,
+                        task,
+                        memory,
+                        browser,
+                    )
+            memory.variables.for_loop_status[-1].append(
+                ForLoopStatus(
+                    variable_name=for_loop_node.variable_name,
+                    index=index,
+                    value=values[index],
+                    status="success",
+                )
+            )
+        except Exception as e:
+            logger.error(
+                f"Error running for loop node {for_loop_node.variable_name}: {e}"
+            )
+            memory.variables.for_loop_status[-1].append(
+                ForLoopStatus(
+                    variable_name=for_loop_node.variable_name,
+                    index=index,
+                    value=values[index],
+                    status="error",
+                    error=str(e),
+                )
+            )
+            if for_loop_node.on_error_in_loop == "continue":
+                continue
+            elif for_loop_node.on_error_in_loop == "break":
+                for index2 in range(index + 1, len(values)):
+                    memory.variables.for_loop_status[-1].append(
+                        ForLoopStatus(
+                            variable_name=for_loop_node.variable_name,
+                            index=index2,
+                            value=values[index2],
+                            status="skipped",
+                        )
+                    )
+
+                break
+            else:
+                raise e
+
+        for node in for_loop_node.reset_nodes:
+            if isinstance(node, IfElseNode):
+                await handle_if_else_node(node, memory, task, browser, full_automation)
+
+            else:
+                full_automation.append(node.model_dump())
+                await run_action_node(
+                    node,
+                    task.automation.parameters.secure_parameters,
+                    task,
+                    memory,
+                    browser,
+                )
