@@ -29,7 +29,7 @@ from optexity.schema.automation import (
     IfElseNode,
     SecureParameter,
 )
-from optexity.schema.memory import BrowserState, Memory, Variables
+from optexity.schema.memory import BrowserState, Memory, OutputData, Variables
 from optexity.schema.task import Task
 from optexity.utils.settings import settings
 
@@ -69,12 +69,36 @@ async def run_automation(task: Task, child_process_id: int):
             ),
         )
         await browser.start()
-        await browser.go_to_url(task.automation.url)
 
         automation = task.automation
 
         memory.automation_state.step_index = -1
         memory.automation_state.try_index = 0
+
+        if task.use_proxy:
+
+            await browser.go_to_url("https://ipinfo.io/json")
+            page = await browser.get_current_page()
+
+            ip_info = await page.evaluate(
+                """
+                async () => {
+                const res = await fetch("https://ipinfo.io/json");
+                return await res.json();
+                }
+                """
+            )
+            if isinstance(ip_info, dict):
+                memory.variables.output_data.append(OutputData(json_data=ip_info))
+            elif isinstance(ip_info, str):
+                memory.variables.output_data.append(OutputData(text=ip_info))
+            else:
+                try:
+                    memory.variables.output_data.append(OutputData(text=str(ip_info)))
+                except Exception as e:
+                    logger.error(f"Error getting IP info: {e}")
+
+        await browser.go_to_url(task.automation.url)
 
         full_automation = []
 
