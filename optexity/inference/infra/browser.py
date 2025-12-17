@@ -80,6 +80,10 @@ class Browser:
                         proxy["username"] = (
                             f"customer-{settings.PROXY_USERNAME}-cc-{settings.PROXY_COUNTRY}-sessid-{self.proxy_session_id}-sesstime-20"
                         )
+                    elif settings.PROXY_PROVIDER == "brightdata":
+
+                        proxy["username"] = settings.PROXY_USERNAME
+
                     else:
                         proxy["username"] = settings.PROXY_USERNAME
 

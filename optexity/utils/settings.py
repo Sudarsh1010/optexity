@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     PROXY_USERNAME: str | None = None
     PROXY_PASSWORD: str | None = None
     PROXY_COUNTRY: str | None = None
-    PROXY_PROVIDER: Literal["oxylabs", "other"] | None = None
+    PROXY_PROVIDER: Literal["oxylabs", "brightdata", "other"] | None = None
 
     @model_validator(mode="after")
     def validate_local_callback_url(self):
