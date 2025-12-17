@@ -72,16 +72,6 @@ class Task(BaseModel):
     class Config:
         json_encoders = {datetime: lambda v: v.isoformat() if v is not None else None}
 
-    def proxy_session_id(
-        self, proxy_provider: Literal["oxylabs", "other"] | None
-    ) -> str | None:
-        if not self.use_proxy:
-            return None
-        if proxy_provider == "oxylabs":
-            return uuid_str_to_base62(self.task_id)
-        else:
-            return "default"
-
     @computed_field
     @property
     def task_directory(self) -> Path:
@@ -137,12 +127,17 @@ class Task(BaseModel):
         self.downloads_directory.mkdir(parents=True, exist_ok=True)
         self.log_file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        if self.use_proxy:
-            assert (
-                self.proxy_provider is not None
-            ), "proxy_provider is required when use_proxy is True"
-
         return self
+
+    def proxy_session_id(
+        self, proxy_provider: Literal["oxylabs", "other"] | None
+    ) -> str | None:
+        if not self.use_proxy:
+            return None
+        if proxy_provider == "oxylabs":
+            return uuid_str_to_base62(self.task_id)
+        else:
+            return "default"
 
 
 class TaskCreateRequest(BaseModel):
