@@ -1,5 +1,6 @@
 import base64
 import json
+import string
 import uuid
 from datetime import datetime
 from io import BytesIO
@@ -11,6 +12,17 @@ from pydantic import BaseModel, Field, computed_field, model_validator
 
 from optexity.schema.automation import Automation
 from optexity.schema.token_usage import TokenUsage
+
+BASE62 = string.digits + string.ascii_lowercase + string.ascii_uppercase
+
+
+def uuid_str_to_base62(uuid_str: str) -> str:
+    n = uuid.UUID(uuid_str).int
+    out = []
+    while n:
+        n, r = divmod(n, 62)
+        out.append(BASE62[r])
+    return "".join(reversed(out))
 
 
 class CallbackUrl(BaseModel):
@@ -49,6 +61,7 @@ class Task(BaseModel):
     status: Literal["queued", "allocated", "running", "success", "failed", "cancelled"]
     is_cloud: bool = False
     save_directory: Path = Field(default=Path("/tmp/optexity"))
+    use_proxy: bool = False
 
     dedup_key: str = Field(default_factory=lambda: str(uuid.uuid4()))
     retry_count: int = 0
@@ -58,6 +71,16 @@ class Task(BaseModel):
 
     class Config:
         json_encoders = {datetime: lambda v: v.isoformat() if v is not None else None}
+
+    def proxy_session_id(
+        self, proxy_provider: Literal["oxylabs", "other"] | None
+    ) -> str | None:
+        if not self.use_proxy:
+            return None
+        if proxy_provider == "oxylabs":
+            return uuid_str_to_base62(self.task_id)
+        else:
+            return "default"
 
     @computed_field
     @property
@@ -113,6 +136,11 @@ class Task(BaseModel):
         self.logs_directory.mkdir(parents=True, exist_ok=True)
         self.downloads_directory.mkdir(parents=True, exist_ok=True)
         self.log_file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if self.use_proxy:
+            assert (
+                self.proxy_provider is not None
+            ), "proxy_provider is required when use_proxy is True"
 
         return self
 

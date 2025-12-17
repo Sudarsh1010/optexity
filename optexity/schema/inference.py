@@ -5,6 +5,7 @@ class InferenceRequest(BaseModel):
     endpoint_name: str
     input_parameters: dict[str, list[str | int | float | bool]]
     unique_parameter_names: list[str] = Field(default_factory=list)
+    use_proxy: bool = False
 
     @model_validator(mode="after")
     def validate_unique_parameter_names(self):

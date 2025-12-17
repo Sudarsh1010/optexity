@@ -11,6 +11,7 @@ from playwright._impl._errors import TimeoutError as PlaywrightTimeoutError
 from playwright.async_api import Download, Locator, Request, Response
 
 from optexity.schema.memory import Memory, NetworkRequest, NetworkResponse
+from optexity.utils.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,8 @@ class Browser:
         backend: Literal["browser-use", "browserbase"] = "browser-use",
         debug_port: int = 9222,
         channel: Literal["chromium", "chrome"] = "chromium",
+        use_proxy: bool = False,
+        proxy_session_id: str | None = None,
     ):
 
         if proxy:
@@ -37,7 +40,8 @@ class Browser:
         self.user_data_dir = user_data_dir
         self.backend = backend
         self.debug_port = debug_port
-
+        self.use_proxy = use_proxy
+        self.proxy_session_id = proxy_session_id
         self.playwright = None
         self.browser = None
         self.context = None
@@ -62,10 +66,31 @@ class Browser:
             else:
                 from playwright.async_api import async_playwright
 
+            proxy = None
+            if self.use_proxy:
+                if settings.PROXY_URL is None:
+                    raise ValueError("PROXY_URL is not set")
+                proxy = {"server": settings.PROXY_URL}
+                if settings.PROXY_USERNAME is not None:
+                    if settings.PROXY_PROVIDER == "oxylabs":
+                        assert settings.PROXY_COUNTRY, "PROXY_COUNTRY is not set"
+                        assert settings.PROXY_USERNAME, "PROXY_USERNAME is not set"
+                        assert settings.PROXY_PASSWORD, "PROXY_PASSWORD is not set"
+
+                        proxy["username"] = (
+                            f"customer-{settings.PROXY_USERNAME}-cc-{settings.PROXY_COUNTRY}-sessid-{self.proxy_session_id}-sesstime-20"
+                        )
+                    else:
+                        proxy["username"] = settings.PROXY_USERNAME
+
+                if settings.PROXY_PASSWORD is not None:
+                    proxy["password"] = settings.PROXY_PASSWORD
+
             self.playwright = await async_playwright().start()
             self.browser = await self.playwright.chromium.launch(
                 channel=self.channel,
                 headless=self.headless,
+                proxy=proxy,
                 args=[
                     "--start-fullscreen",
                     "--disable-popup-blocking",

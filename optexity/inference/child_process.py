@@ -179,6 +179,10 @@ def get_app_with_endpoints(is_aws: bool):
                 task_data = response_data["task"]
 
                 task = Task.model_validate_json(task_data)
+                if task.use_proxy and settings.PROXY_URL is None:
+                    raise ValueError(
+                        "PROXY_URL is not set and is required when use_proxy is True"
+                    )
                 task.allocated_at = datetime.now(timezone.utc)
                 await task_queue.put(task)
 

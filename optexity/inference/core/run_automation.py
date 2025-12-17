@@ -31,6 +31,7 @@ from optexity.schema.automation import (
 )
 from optexity.schema.memory import BrowserState, Memory, Variables
 from optexity.schema.task import Task
+from optexity.utils.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +63,10 @@ async def run_automation(task: Task, child_process_id: int):
             headless=False,
             channel=task.automation.browser_channel,
             debug_port=9222 + child_process_id,
+            use_proxy=task.use_proxy,
+            proxy_session_id=task.proxy_session_id(
+                settings.PROXY_PROVIDER if task.use_proxy else None
+            ),
         )
         await browser.start()
         await browser.go_to_url(task.automation.url)
