@@ -99,11 +99,16 @@ class ScreenshotExtraction(BaseModel):
     full_page: bool = True
 
 
+class StateExtraction(BaseModel):
+    pass
+
+
 class ExtractionAction(BaseModel):
     network_call: Optional[NetworkCallExtraction] = None
     llm: Optional[LLMExtraction] = None
     python_script: Optional[PythonScriptExtraction] = None
     screenshot: Optional[ScreenshotExtraction] = None
+    state: Optional[StateExtraction] = None
 
     @model_validator(mode="after")
     def validate_one_extraction(cls, model: "ExtractionAction"):
@@ -113,6 +118,7 @@ class ExtractionAction(BaseModel):
             "network_call": model.network_call,
             "python_script": model.python_script,
             "screenshot": model.screenshot,
+            "state": model.state,
         }
         non_null = [k for k, v in provided.items() if v is not None]
 

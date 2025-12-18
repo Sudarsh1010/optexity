@@ -11,6 +11,7 @@ from optexity.schema.actions.extraction_action import (
     LLMExtraction,
     NetworkCallExtraction,
     ScreenshotExtraction,
+    StateExtraction,
 )
 from optexity.schema.memory import (
     Memory,
@@ -43,6 +44,20 @@ async def run_extraction_action(
         await handle_screenshot_extraction(
             extraction_action.screenshot, memory, browser
         )
+    elif extraction_action.state:
+        await handle_state_extraction(extraction_action.state, memory, browser)
+
+
+async def handle_state_extraction(
+    state_extraction: StateExtraction, memory: Memory, browser: Browser
+):
+    page = await browser.get_current_page()
+    if page is None:
+        return
+
+    memory.variables.output_data.append(
+        OutputData(json_data={"page_url": page.url, "page_title": page.title})
+    )
 
 
 async def handle_screenshot_extraction(
