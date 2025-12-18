@@ -12,5 +12,5 @@ class CallbackResponse(BaseModel):
     final_screenshot: str | None = None
     endpoint_name: str
     downloads: list[dict] | None = None
-    input_parameters: dict | None = None
+    input_parameters: dict[str, list[str | int | float | bool]] | None = None
     unique_parameter_names: list[str] | None = None

@@ -180,6 +180,17 @@ class CloseAllButLastTabAction(BaseModel):
     pass
 
 
+class CloseTabsUntil(BaseModel):
+    matching_url: str
+
+    def replace(self, pattern: str, replacement: str):
+        if self.matching_url:
+            self.matching_url = self.matching_url.replace(pattern, replacement).strip(
+                '"'
+            )
+        return self
+
+
 @unique
 class KeyPressType(str, Enum):
     ENTER = "Enter"
@@ -230,6 +241,7 @@ class InteractionAction(BaseModel):
     switch_tab: SwitchTabAction | None = None
     close_current_tab: CloseCurrentTabAction | None = None
     close_all_but_last_tab: CloseAllButLastTabAction | None = None
+    close_tabs_until: CloseTabsUntil | None = None
     agentic_task: AgenticTask | None = None
     close_overlay_popup: CloseOverlayPopupAction | None = None
     key_press: KeyPressAction | None = None
@@ -250,6 +262,7 @@ class InteractionAction(BaseModel):
             "switch_tab": model.switch_tab,
             "close_current_tab": model.close_current_tab,
             "close_all_but_last_tab": model.close_all_but_last_tab,
+            "close_tabs_until": model.close_tabs_until,
             "agentic_task": model.agentic_task,
             "close_overlay_popup": model.close_overlay_popup,
             "key_press": model.key_press,
@@ -258,7 +271,7 @@ class InteractionAction(BaseModel):
 
         if len(non_null) != 1:
             raise ValueError(
-                "Exactly one of click_element, input_text, select_option, check, download_url_as_pdf, scroll, upload_file, go_to_url, go_back, switch_tab, close_current_tab, close_all_but_last_tab, key_press, or agentic_task must be provided"
+                "Exactly one of click_element, input_text, select_option, check, download_url_as_pdf, scroll, upload_file, go_to_url, go_back, switch_tab, close_current_tab, close_all_but_last_tab, close_tabs_until, key_press, or agentic_task must be provided"
             )
 
         if model.start_2fa_timer:
@@ -286,6 +299,8 @@ class InteractionAction(BaseModel):
             self.check.replace(pattern, replacement)
         if self.download_url_as_pdf:
             self.download_url_as_pdf.replace(pattern, replacement)
+        if self.close_tabs_until:
+            self.close_tabs_until.replace(pattern, replacement)
         if self.agentic_task:
             self.agentic_task.replace(pattern, replacement)
         if self.close_overlay_popup:

@@ -17,6 +17,7 @@ from optexity.inference.core.interaction.handle_upload import handle_upload_file
 from optexity.inference.infra.browser import Browser
 from optexity.schema.actions.interaction_action import (
     CloseOverlayPopupAction,
+    CloseTabsUntil,
     DownloadUrlAsPdfAction,
     GoBackAction,
     GoToUrlAction,
@@ -110,12 +111,32 @@ async def run_interaction_action(
             )
         elif interaction_action.close_current_tab:
             await browser.close_current_tab()
+        elif interaction_action.close_tabs_until:
+            await handle_close_tabs_until(
+                interaction_action.close_tabs_until, task, memory, browser
+            )
         elif interaction_action.key_press:
             await handle_key_press(interaction_action.key_press, memory, browser)
     except AssertLocatorPresenceException as e:
         await handle_assert_locator_presence_error(
             e, interaction_action, task, memory, browser, retries_left
         )
+
+
+async def handle_close_tabs_until(
+    close_tabs_until_action: CloseTabsUntil,
+    task: Task,
+    memory: Memory,
+    browser: Browser,
+):
+    while True:
+        page = await browser.get_current_page()
+        if page is None:
+            return
+        if close_tabs_until_action.matching_url in page.url:
+            break
+
+        await browser.close_current_tab()
 
 
 async def handle_go_to_url(

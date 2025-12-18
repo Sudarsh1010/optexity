@@ -1,6 +1,6 @@
 import asyncio
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from playwright.async_api import Download
 from pydantic import BaseModel, Field
@@ -57,9 +57,18 @@ class OutputData(BaseModel):
     text: str | None = Field(default=None)
 
 
+class ForLoopStatus(BaseModel):
+    variable_name: str
+    index: int
+    value: str | int | float | bool
+    error: str | None = None
+    status: Literal["success", "error", "skipped"]
+
+
 class Variables(BaseModel):
     input_variables: dict[str, list[str]]
     output_data: list[OutputData] = Field(default_factory=list)
+    for_loop_status: list[list[ForLoopStatus]] = Field(default_factory=list)
     generated_variables: dict = Field(default_factory=dict)
 
 

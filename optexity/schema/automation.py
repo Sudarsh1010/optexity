@@ -12,6 +12,9 @@ from optexity.utils.utils import get_onepassword_value, get_totp_code
 
 logger = logging.getLogger(__name__)
 
+IfElseNodeRef = ForwardRef("IfElseNode")
+ForLoopNodeRef = ForwardRef("ForLoopNode")
+
 
 class OnePasswordParameter(BaseModel):
     vault_name: str
@@ -184,7 +187,11 @@ class ForLoopNode(BaseModel):
     # Loops through range of values of {variable_name[index]}
     type: Literal["for_loop_node"]
     variable_name: str
-    nodes: list[ActionNode]
+    nodes: list[Annotated[ActionNode | IfElseNodeRef, Field(discriminator="type")]]
+    reset_nodes: list[
+        Annotated[ActionNode | IfElseNodeRef, Field(discriminator="type")]
+    ] = []
+    on_error_in_loop: Literal["continue", "break", "raise"] = "raise"
 
     @model_validator(mode="before")
     def migrate_old_nodes(cls, data: dict[str, Any]):
@@ -230,14 +237,11 @@ class ForLoopNode(BaseModel):
         return data
 
 
-IfElseNodeRef = ForwardRef("IfElseNode")
-
-
 class IfElseNode(BaseModel):
     type: Literal["if_else_node"]
     condition: str
-    if_nodes: list[ActionNode | IfElseNodeRef]
-    else_nodes: list[ActionNode | IfElseNodeRef] = []
+    if_nodes: list[ActionNode | IfElseNodeRef | ForLoopNodeRef]
+    else_nodes: list[ActionNode | IfElseNodeRef | ForLoopNodeRef] = []
 
     @model_validator(mode="before")
     def migrate_old_nodes(cls, data: dict[str, Any]):
@@ -287,6 +291,21 @@ class Parameters(BaseModel):
     input_parameters: dict[str, list[str | int | float | bool]]
     secure_parameters: dict[str, list[SecureParameter]] = Field(default_factory=dict)
     generated_parameters: dict[str, list[str | int | float | bool | None]]
+
+    @model_validator(mode="after")
+    def validate_parameters(self):
+        reserved_parameter_names = set(["current_page_url"])
+
+        for key, values in self.input_parameters.items():
+            if key in reserved_parameter_names:
+                raise ValueError(f"Parameter name {key} is reserved")
+        for key, values in self.generated_parameters.items():
+            if key in reserved_parameter_names:
+                raise ValueError(f"Parameter name {key} is reserved")
+        for key, values in self.secure_parameters.items():
+            if key in reserved_parameter_names:
+                raise ValueError(f"Parameter name {key} is reserved")
+        return self
 
 
 class Automation(BaseModel):
