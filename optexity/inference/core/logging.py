@@ -112,8 +112,15 @@ async def save_output_data_in_server(task: Task, memory: Memory):
             "task_id": task.task_id,
             "output_data": output_data,
             "final_screenshot": memory.final_screenshot,
-            "for_loop_status": memory.variables.for_loop_status,
         }
+
+        for_loop_status = []
+        for loop_status in memory.variables.for_loop_status:
+            loop_status = [item.model_dump(exclude_none=True) for item in loop_status]
+            for_loop_status.append(loop_status)
+
+        if len(for_loop_status) > 0:
+            body["for_loop_status"] = for_loop_status
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
