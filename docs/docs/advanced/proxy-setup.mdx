@@ -1,0 +1,44 @@
+---
+title: Proxy Setup
+description: Setting up proxies for your automations
+---
+
+Optexity supports using proxies for your automations. You can use proxies from any provider. 
+
+## Proxy setup in local development
+
+You can use proxies in local development by setting the `PROXY_URL`, `PROXY_USERNAME`, `PROXY_PASSWORD` environment variables.
+
+```bash
+PROXY_URL=http://proxy-server:8080
+PROXY_USERNAME=proxy-user # optional
+PROXY_PASSWORD=proxy-pass # optional
+PROXY_PROVIDER=other # optional, default is oxylabs
+``` 
+
+## Proxy setup in production
+
+There is no requirement from the user to set up proxies in production. Optexity will automatically use the proxy.
+
+## Inference with proxies
+
+If you want to use proxies in your inference, you can set the `use_proxy` flag to `true` in the inference request. In the inference optexity will take care of the proxy setup and use the proxy for the inference. In local development, you can set the `PROXY_URL`, `PROXY_USERNAME`, `PROXY_PASSWORD` environment variables to use the proxy.
+
+```json
+{
+    "endpoint_name": "extract_stock_price",
+    "input_parameters": {
+      "search_term": ["NVDA"]
+    },
+    "unique_parameter_names": [],
+    "use_proxy": true
+}
+```
+
+
+
+## Proxy providers
+
+### Webshare
+
+[Webshare](https://webshare.io/) provides 10 free proxies for testing. You can use the webshare proxy by setting the `PROXY_URL`, `PROXY_USERNAME`, `PROXY_PASSWORD` environment variables.

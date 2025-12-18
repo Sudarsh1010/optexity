@@ -50,7 +50,8 @@
                             "/docs/advanced/callbacks",
                             "/docs/advanced/onepassword",
                             "/docs/advanced/totp-integration",
-                            "/docs/advanced/orchestration"
+                            "/docs/advanced/orchestration",
+                            "/docs/advanced/proxy-setup"
                         ]
                     }
                 ]

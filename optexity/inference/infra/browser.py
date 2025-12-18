@@ -82,7 +82,9 @@ class Browser:
                         )
                     elif settings.PROXY_PROVIDER == "brightdata":
 
-                        proxy["username"] = settings.PROXY_USERNAME
+                        proxy["username"] = (
+                            f"{settings.PROXY_USERNAME}-session-{self.proxy_session_id}"
+                        )
 
                     else:
                         proxy["username"] = settings.PROXY_USERNAME
@@ -100,6 +102,9 @@ class Browser:
                     "--disable-popup-blocking",
                     "--window-size=1920,1080",
                     f"--remote-debugging-port={self.debug_port}",
+                    "--disable-gpu",
+                    "--disable-extensions",
+                    "--disable-background-networking",
                 ],
                 chromium_sandbox=False,
             )
