@@ -137,4 +137,8 @@ class ExtractionAction(BaseModel):
             self.llm.replace(pattern, replacement)
         if self.python_script:
             self.python_script.replace(pattern, replacement)
+        if self.unique_identifier:
+            self.unique_identifier = self.unique_identifier.replace(
+                pattern, replacement
+            )
         return self
