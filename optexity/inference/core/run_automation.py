@@ -95,12 +95,18 @@ async def run_automation(task: Task, child_process_id: int):
                 """
             )
             if isinstance(ip_info, dict):
-                memory.variables.output_data.append(OutputData(json_data=ip_info))
+                memory.variables.output_data.append(
+                    OutputData(unique_identifier="ip_info", json_data=ip_info)
+                )
             elif isinstance(ip_info, str):
-                memory.variables.output_data.append(OutputData(text=ip_info))
+                memory.variables.output_data.append(
+                    OutputData(unique_identifier="ip_info", text=ip_info)
+                )
             else:
                 try:
-                    memory.variables.output_data.append(OutputData(text=str(ip_info)))
+                    memory.variables.output_data.append(
+                        OutputData(unique_identifier="ip_info", text=str(ip_info))
+                    )
                 except Exception as e:
                     logger.error(f"Error getting IP info: {e}")
 

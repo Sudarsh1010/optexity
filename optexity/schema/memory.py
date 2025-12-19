@@ -52,6 +52,7 @@ class ScreenshotData(BaseModel):
 
 
 class OutputData(BaseModel):
+    unique_identifier: str | None = None
     json_data: dict | None = Field(default=None)
     screenshot: ScreenshotData = Field(default=None)
     text: str | None = Field(default=None)

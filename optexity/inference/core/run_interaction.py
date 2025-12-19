@@ -227,7 +227,7 @@ async def handle_assert_locator_presence_error(
                 f"Fatal error running node {memory.automation_state.step_index} after {retries_left} retries: {error.original_error}. Error: {response.detailed_reason}"
             )
             memory.variables.output_data.append(
-                OutputData(text=response.detailed_reason)
+                OutputData(unique_identifier="error", text=response.detailed_reason)
             )
             raise Exception(
                 f"Fatal error running node {memory.automation_state.step_index} after {retries_left} retries: {error.original_error}. Final reason: {response.detailed_reason}"
