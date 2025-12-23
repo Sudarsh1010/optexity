@@ -132,6 +132,7 @@ class InputTextAction(BaseAction):
 class DownloadUrlAsPdfAction(BaseModel):
     # Used when the current page is a PDF and we want to download it
     download_filename: str = Field(default_factory=lambda: str(uuid4()))
+    url: str | None = None
 
     def replace(self, pattern: str, replacement: str):
         if self.download_filename:

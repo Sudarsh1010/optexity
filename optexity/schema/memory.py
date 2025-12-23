@@ -82,6 +82,7 @@ class Memory(BaseModel):
     raw_downloads: dict[Path, tuple[bool, Download | None]] = Field(
         default_factory=dict
     )
+    urls_to_downloads: list[tuple[str, str]] = Field(default_factory=list)
     downloads: list[Path] = Field(default_factory=list)
     final_screenshot: str | None = Field(default=None)
 

@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 import traceback
 from copy import deepcopy
 
@@ -20,9 +21,13 @@ from optexity.inference.core.logging import (
 from optexity.inference.core.run_2fa import run_2fa_action
 from optexity.inference.core.run_assertion import run_assertion_action
 from optexity.inference.core.run_extraction import run_extraction_action
-from optexity.inference.core.run_interaction import run_interaction_action
+from optexity.inference.core.run_interaction import (
+    handle_download_url_as_pdf,
+    run_interaction_action,
+)
 from optexity.inference.core.run_python_script import run_python_script_action
 from optexity.inference.infra.browser import Browser
+from optexity.schema.actions.interaction_action import DownloadUrlAsPdfAction
 from optexity.schema.automation import (
     ActionNode,
     ForLoopNode,
@@ -154,10 +159,12 @@ async def run_final_downloads_check(task: Task, memory: Memory, browser: Browser
 
     try:
         logger.debug("Running final downloads check")
+        max_timeout = 10.0
+        start = time.monotonic()
         await asyncio.wait_for(
-            browser.all_active_downloads_done.wait(),
-            timeout=10,
+            browser.all_active_downloads_done.wait(), timeout=max_timeout
         )
+        max_timeout = max(0.0, max_timeout - (time.monotonic() - start))
 
         for temp_download_path, (
             is_downloaded,
@@ -171,6 +178,25 @@ async def run_final_downloads_check(task: Task, memory: Memory, browser: Browser
             memory.downloads.append(download_path)
             await clean_download(download_path)
             memory.raw_downloads[temp_download_path] = (True, download)
+
+        while max_timeout > 0:
+            if (
+                len(memory.urls_to_downloads) + len(memory.downloads)
+                >= task.automation.expected_downloads
+            ):
+                break
+            interval = min(1, max_timeout)
+            await asyncio.sleep(interval)
+            max_timeout = max(0.0, max_timeout - interval)
+
+        for url, filename in memory.urls_to_downloads:
+            download_path = task.downloads_directory / filename
+            await handle_download_url_as_pdf(
+                DownloadUrlAsPdfAction(url=url, download_filename=filename),
+                task,
+                memory,
+                browser,
+            )
 
     except Exception as e:
         logger.error(f"Error running final downloads check: {e}")
