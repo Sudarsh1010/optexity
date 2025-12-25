@@ -7,379 +7,369 @@ Extraction actions capture data from web pages during automation. They're essent
 
 ## Overview
 
-Every extraction action is wrapped in an `ExtractionAction` container:
+Every extraction action is wrapped in an `extraction_action` container:
 
-```python
-from optexity.schema.actions.extraction_action import (
-    ExtractionAction,
-    LLMExtraction,
-)
-from optexity.schema.automation import ActionNode
-
-node = ActionNode(
-    extraction_action=ExtractionAction(
-        llm=LLMExtraction(
-            source=["axtree"],
-            extraction_format={"title": "str"},
-            extraction_instructions="Extract the page title",
-        )
-    )
-)
+```json
+{
+    "extraction_action": {
+        "llm": {
+            "source": ["axtree"],
+            "extraction_format": {
+                "title": "str"
+            },
+            "extraction_instructions": "Extract the page title"
+        }
+    }
+}
 ```
 
-An `ExtractionAction` contains exactly one of:
+An `extraction_action` contains exactly one of:
 
-| Type | Purpose |
-|------|---------|
-| `llm` | Use LLM to extract structured data from page content |
-| `network_call` | Capture data from network requests/responses |
-| `python_script` | Run custom Python code to extract data |
-| `screenshot` | Capture a screenshot of the page |
+| Type            | Purpose                                              |
+| --------------- | ---------------------------------------------------- |
+| `llm`           | Use LLM to extract structured data from page content |
+| `network_call`  | Capture data from network requests/responses         |
+| `python_script` | Run custom Python code to extract data               |
+| `screenshot`    | Capture a screenshot of the page                     |
+| `state`         | Capture the state of the page                        |
 
 ## LLM Extraction
 
 The most powerful extraction method. Uses an LLM to parse page content and extract structured data.
 
-```python
-from optexity.schema.actions.extraction_action import (
-    ExtractionAction,
-    LLMExtraction,
-)
-
-# Basic extraction
-ActionNode(
-    extraction_action=ExtractionAction(
-        llm=LLMExtraction(
-            source=["axtree"],
-            extraction_format={
+```json
+{
+    "extraction_action": {
+        "llm": {
+            "source": ["axtree"],
+            "extraction_format": {
                 "product_name": "str",
                 "price": "str",
-                "availability": "str",
+                "availability": "str"
             },
-            extraction_instructions="Extract the product name, price, and availability from the product page",
-        )
-    )
-)
+            "extraction_instructions": "Extract the product name, price, and availability from the product page"
+        }
+    }
+}
 ```
 
-### Source Types
+### Properties
 
-The `source` field specifies what the LLM analyzes:
+| Property                  | Type                                    | Default              | Description                                                            |
+| ------------------------- | --------------------------------------- | -------------------- | ---------------------------------------------------------------------- |
+| `source`                  | `list[Literal["axtree", "screenshot"]]` | `["axtree"]`         | Data sources for the LLM to analyze                                    |
+| `extraction_format`       | `dict`                                  | Required             | Expected output structure. Keys are field names, values are type hints |
+| `extraction_instructions` | `str`                                   | Required             | Natural language instruction describing what to extract                |
+| `output_variable_names`   | `list[str]`                             | `None`               | To store extracted values for use in subsequent actions                |
+| `llm_provider`            | `Literal["gemini"]`                     | `"gemini"`           | LLM provider                                                           |
+| `llm_model_name`          | `str`                                   | `"gemini-2.5-flash"` | LLM model name                                                         |
 
-| Source | Description | Best For |
-|--------|-------------|----------|
-| `axtree` | Accessibility tree (structured text representation) | Most use cases, tables, forms |
-| `screenshot` | Visual screenshot of the page | Visual layouts, charts, images |
+-   `source` - Data sources for the LLM to analyze. It can be either `axtree` or `screenshot`. `axtree` is the default and is used for most use cases. `screenshot` is used for visual layouts, charts, and images.
+    You can combine sources to get the best of both worlds.
 
-You can combine sources:
-
-```python
-source=["axtree", "screenshot"]  # LLM sees both text and visual
+```json
+{
+    "source": ["axtree", "screenshot"]
+}
 ```
 
 ### Extraction Format
 
-Define the expected output structure using Python type hints:
+Define the expected output structure using type hints. Extraction format is a dictionary with keys as field names and values as type hints.
 
-```python
-# Single values
-extraction_format={
-    "title": "str",
-    "description": "str",
-}
-
-# Lists
-extraction_format={
-    "product_ids": "List[str]",
-    "prices": "List[str]",
-}
-
-# Mixed
-extraction_format={
-    "page_title": "str",
-    "items": "List[str]",
-    "total_count": "str",
+```json
+{
+    "extraction_format": {
+        "title": "str",
+        "description": "str"
+    }
 }
 ```
 
-<Note>
-Only `str` and `List[str]` (or `list[str]`) are supported as types.
-</Note>
+You can also extract lists of values.
+
+```json
+{
+    "extraction_format": {
+        "product_ids": "List[str]",
+        "prices": "List[str]"
+    }
+}
+```
+
+You can extract list of dictionaries as well.
+
+```json
+{
+    "extraction_format": [
+        {
+            "page_title": "str",
+            "items": "List[str]",
+            "total_count": "str"
+        }
+    ]
+}
+```
+
+<Note>Only `str` and `List[str]` (or `list[str]`) are supported as types.</Note>
 
 ### Output Variables
 
 To store extracted values for use in subsequent actions, specify `output_variable_names`:
 
-```python
-ActionNode(
-    extraction_action=ExtractionAction(
-        llm=LLMExtraction(
-            source=["axtree"],
-            extraction_format={
+```json
+{
+    "extraction_action": {
+        "llm": {
+            "source": ["axtree"],
+            "extraction_format": {
                 "order_ids": "List[str]",
-                "total": "str",
+                "total": "str"
             },
-            extraction_instructions="Extract all order IDs from the orders table",
-            output_variable_names=["order_ids"],  # Store order_ids in generated_parameters
-        )
-    )
-)
+            "extraction_instructions": "Extract all order IDs from the orders table",
+            "output_variable_names": ["order_ids"]
+        }
+    }
+}
 ```
 
-After this action, you can use `{order_ids[0]}`, `{order_ids[1]}`, etc., or iterate with `ForLoopNode`.
+For general extraction, you do not need to specify `output_variable_names`. It is only required when you need to use it in subsequent actions.
+
+After this action, you can use `{order_ids[0]}`, `{order_ids[1]}`, etc., or iterate with `for_loop_node`. For more information about `for_loop_node`, see [For Loop Node](/docs/building-automations/for-loop-node).
 
 ### Writing Good Extraction Instructions
 
 <CardGroup cols={2}>
-<Card title="Be Specific" icon="bullseye">
-  Describe exactly what data you want
-</Card>
-<Card title="Provide Context" icon="map">
-  Mention where the data appears on the page
-</Card>
+    <Card title="Be Specific" icon="bullseye">
+        Describe exactly what data you want
+    </Card>
+    <Card title="Provide Context" icon="map">
+        Mention where the data appears on the page
+    </Card>
 </CardGroup>
 
 **Good examples:**
 
-```python
-# Clear and specific
-extraction_instructions="Extract all authorization numbers from the Authorizations table. The Auth Nbr column contains values like 'AUTH-12345'."
+```json
+{
+    "extraction_instructions": "Extract all authorization numbers from the Authorizations table. The Auth Nbr column contains values like 'AUTH-12345'."
+}
+```
 
-# With format hints
-extraction_instructions="Extract the order status. It should be one of: 'Pending', 'Processing', 'Shipped', 'Delivered'."
+```json
+{
+    "extraction_instructions": "Extract the order status. It should be one of: 'Pending', 'Processing', 'Shipped', 'Delivered'."
+}
+```
 
-# Multiple fields with context
-extraction_instructions="From the patient info section, extract: patient name (shown as 'Name:'), date of birth (shown as 'DOB:'), and member ID."
+```json
+{
+    "extraction_instructions": "From the patient info section, extract: patient name (shown as 'Name:'), date of birth (shown as 'DOB:'), and member ID."
+}
 ```
 
 **Poor examples:**
 
-```python
-# Too vague
-extraction_instructions="Get the data"
+```json
+{
+    "extraction_instructions": "Get the data"
+}
+```
 
-# Ambiguous
-extraction_instructions="Extract the numbers"
+```json
+{
+    "extraction_instructions": "Extract the numbers"
+}
 ```
 
 ### Complete Example
 
-```python
-from optexity.schema.automation import ActionNode, ForLoopNode
-from optexity.schema.actions.extraction_action import ExtractionAction, LLMExtraction
-from optexity.schema.actions.interaction_action import InteractionAction, ClickElementAction
-
-# Step 1: Extract list of items
-ActionNode(
-    extraction_action=ExtractionAction(
-        llm=LLMExtraction(
-            source=["axtree"],
-            extraction_format={
-                "authorization_numbers": "List[str]",
+```json
+{
+    "extraction_action": {
+        "llm": {
+            "source": ["axtree"],
+            "extraction_format": {
+                "authorization_numbers": "List[str]"
             },
-            extraction_instructions="Extract all authorization numbers from the table. Look for the 'Auth Nbr' column.",
-            output_variable_names=["authorization_numbers"],
-        )
-    )
-),
+            "extraction_instructions": "Extract all authorization numbers from the table. Look for the 'Auth Nbr' column.",
+            "output_variable_names": ["authorization_numbers"]
+        }
+    }
+}
+```
 
-# Step 2: Loop through extracted items
-ForLoopNode(
-    variable_name="authorization_numbers",
-    nodes=[
-        ActionNode(
-            interaction_action=InteractionAction(
-                click_element=ClickElementAction(
-                    command="""get_by_role("link", name="{authorization_numbers[index]}")""",
-                    prompt_instructions="Click on authorization {authorization_numbers[index]}",
-                )
-            )
-        ),
-        # Extract details for each
-        ActionNode(
-            extraction_action=ExtractionAction(
-                llm=LLMExtraction(
-                    source=["axtree"],
-                    extraction_format={
+```json
+{
+    "variable_name": "authorization_numbers",
+    "nodes": [
+        {
+            "interaction_action": {
+                "click_element": {
+                    "command": "get_by_role(\"link\", name=\"{authorization_numbers[index]}\")",
+                    "prompt_instructions": "Click on authorization {authorization_numbers[index]}"
+                }
+            }
+        },
+        {
+            "extraction_action": {
+                "llm": {
+                    "source": ["axtree"],
+                    "extraction_format": {
                         "auth_status": "str",
                         "start_date": "str",
                         "end_date": "str",
-                        "units_approved": "str",
+                        "units_approved": "str"
                     },
-                    extraction_instructions="Extract authorization details: status, start date, end date, and units approved.",
-                )
-            )
-        ),
-    ],
-)
+                    "extraction_instructions": "Extract authorization details: status, start date, end date, and units approved."
+                }
+            }
+        }
+    ]
+}
 ```
 
 ## Network Call Extraction
 
 Capture data directly from network requests. Useful for APIs and AJAX calls.
 
-```python
-from optexity.schema.actions.extraction_action import (
-    ExtractionAction,
-    NetworkCallExtraction,
-)
-
-ActionNode(
-    extraction_action=ExtractionAction(
-        network_call=NetworkCallExtraction(
-            url_pattern="https://api.example.com/orders"
-        )
-    )
-)
-```
-
-### Filtering Requests
-
-```python
-# Match by URL pattern
-NetworkCallExtraction(
-    url_pattern="https://api.example.com/v1/search"
-)
-
-# Match by URL and headers
-NetworkCallExtraction(
-    url_pattern="https://api.example.com/data",
-    header_filter={
-        "content-type": "application/json"
+```json
+{
+    "extraction_action": {
+        "network_call": {
+            "url_pattern": "https://api.example.com/orders"
+        }
     }
-)
+}
 ```
 
 ### Properties
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `url_pattern` | `str \| None` | `None` | URL pattern to match |
-| `header_filter` | `dict[str, str] \| None` | `None` | Headers that must be present |
+| Property            | Type                                     | Default | Description                       |
+| ------------------- | ---------------------------------------- | ------- | --------------------------------- |
+| `url_pattern`       | `str \| None`                            | `None`  | URL pattern to match              |
+| `extract_from`      | `Literal["request", "response"] \| None` | `None`  | Extract from request or response  |
+| `download_from`     | `Literal["request", "response"] \| None` | `None`  | Download from request or response |
+| `download_filename` | `str \| None`                            | `None`  | Download filename                 |
+
+-   `url_pattern` - URL pattern to match. Captured requests must contain this substring.
+-   `extract_from` - Extract from request or response.
+-   `download_from` - Download from request or response. This is useful when the response contains the data and you want to save it as a file because the pdf viewer is hard to read. Currently only supports `request`. Currently we only look for pdf content in the network call body.
+-   `download_filename` - Download filename. this is optional and if not provided, a random uuid will be generated. this is used only if `download_from` is set.
 
 ## Python Script Extraction
 
 Run custom Python code to extract or process data.
 
-```python
-from optexity.schema.actions.extraction_action import (
-    ExtractionAction,
-    PythonScriptExtraction,
-)
-
-ActionNode(
-    extraction_action=ExtractionAction(
-        python_script=PythonScriptExtraction(
-            script='''
-import re
-
-# Access page content
-content = await page.content()
-
-# Extract using regex
-matches = re.findall(r'Order #(\\d+)', content)
-print(f"Found {len(matches)} orders")
-'''
-        )
-    )
-)
+```json
+{
+    "extraction_action": {
+        "python_script": {
+            "script": "import re\n\n# Access page content\ncontent = await page.content()\n\n# Extract using regex\nmatches = re.findall(r'Order #(\\d+)', content)\nprint(f\"Found {len(matches)} orders\")"
+        }
+    }
+}
 ```
 
 <Warning>
-Python scripts execute in an async context. Use `await` for Playwright operations.
+    Python scripts execute in an async context. Use `await` for Playwright operations.
 </Warning>
 
 ### Accessing the Page
 
 The script has access to the Playwright `page` object:
 
-```python
-script='''
-# Get page URL
-url = page.url
-
-# Get page content
-html = await page.content()
-
-# Evaluate JavaScript
-result = await page.evaluate("document.title")
-
-# Query elements
-elements = await page.query_selector_all(".item")
-'''
+```json
+{
+    "python_script": {
+        "script": "# Get page URL\nurl = page.url\n\n# Get page content\nhtml = await page.content()\n\n# Evaluate JavaScript\nresult = await page.evaluate(\"document.title\")\n\n# Query elements\nelements = await page.query_selector_all(\".item\")"
+    }
+}
 ```
 
 ## Screenshot Extraction
 
-Capture a screenshot of the current page.
+Capture a screenshot of the current page. this saves the screenshot to the downloads directory and you can use it for analysis later.
 
-```python
-from optexity.schema.actions.extraction_action import (
-    ExtractionAction,
-    ScreenshotExtraction,
-)
+```json
+{
+    "extraction_action": {
+        "screenshot": {
+            "filename": "order_confirmation.png",
+            "full_page": true
+        }
+    }
+}
+```
 
-# Full page screenshot
-ActionNode(
-    extraction_action=ExtractionAction(
-        screenshot=ScreenshotExtraction(
-            filename="order_confirmation.png",
-            full_page=True,
-        )
-    )
-)
-
-# Viewport only
-ActionNode(
-    extraction_action=ExtractionAction(
-        screenshot=ScreenshotExtraction(
-            filename="visible_area.png",
-            full_page=False,
-        )
-    )
-)
+```json
+{
+    "extraction_action": {
+        "screenshot": {
+            "filename": "visible_area.png",
+            "full_page": false
+        }
+    }
+}
 ```
 
 ### Properties
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `filename` | `str` | Required | Output filename for the screenshot |
-| `full_page` | `bool` | `True` | Capture entire page or just viewport |
+| Property    | Type   | Default  | Description                          |
+| ----------- | ------ | -------- | ------------------------------------ |
+| `filename`  | `str`  | Required | Output filename for the screenshot   |
+| `full_page` | `bool` | `True`   | Capture entire page or just viewport |
 
+-   `filename` - Output filename for the screenshot. Supports variable substitution.
+-   `full_page` - Capture entire page or just viewport.
+
+## State Extraction
+
+Capture the state of the page. this is useful when you need to capture the state of the page for later use. this will save current page url and title to the output data.
+
+```json
+{
+    "extraction_action": {
+        "state": {}
+    }
+}
+```
 ## Timing Considerations
 
 Extraction actions have different default timing:
 
-| Property | Default for Extractions |
-|----------|------------------------|
-| `before_sleep_time` | `3.0` seconds |
-| `end_sleep_time` | `0.0` seconds |
+| Property            | Default for Extractions |
+| ------------------- | ----------------------- |
+| `before_sleep_time` | `3.0` seconds           |
+| `end_sleep_time`    | `0.0` seconds           |
 
 This allows the page to fully load before extraction. Override if needed:
 
-```python
-ActionNode(
-    extraction_action=ExtractionAction(
-        llm=LLMExtraction(...)
-    ),
-    before_sleep_time=5.0,  # Wait longer for slow pages
-)
+```json
+{
+    "extraction_action": {
+        "llm": {
+            "source": ["axtree"],
+            "extraction_format": {},
+            "extraction_instructions": "..."
+        }
+    },
+    "before_sleep_time": 5.0
+}
 ```
 
 ## When to Use Each Extraction Type
 
-| Scenario | Recommended Type |
-|----------|-----------------|
-| Extract structured data from visible content | `llm` with `axtree` |
-| Capture data from charts or images | `llm` with `screenshot` |
-| Intercept API responses | `network_call` |
-| Complex data processing | `python_script` |
-| Visual record/proof | `screenshot` |
+| Scenario                                     | Recommended Type        |
+| -------------------------------------------- | ----------------------- |
+| Extract structured data from visible content | `llm` with `axtree`     |
+| Capture data from charts or images           | `llm` with `screenshot` |
+| Intercept API responses                      | `network_call`          |
+| Complex data processing                      | `python_script`         |
+| Visual record/proof                          | `screenshot`            |
 
 ## Next Steps
 
-- Learn about [Control Flow](/docs/control-flow) to iterate over extracted data
-- See [Parameters & Variables](/docs/parameters-variables) for using extracted values
-- Check [Best Practices](/docs/best-practices) for extraction tips
-
+-   Learn about [Control Flow](/docs/control-flow) to iterate over extracted data
+-   See [Parameters & Variables](/docs/parameters-variables) for using extracted values
+-   Check [Best Practices](/docs/best-practices) for extraction tips

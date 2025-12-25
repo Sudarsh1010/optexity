@@ -9,9 +9,12 @@ description: Understanding the For Loop Node of Optexity automations
 
 Use `For Loop Node` to iterate over extracted data. This is powerful for processing lists of items, like clicking through search results or processing multiple records.
 
-`nodes` is a list of `action_node` or `if_else_node` nodes.
-`reset_nodes` is a list of `action_node` or `if_else_node` nodes.
-`on_error_in_loop` is the action to execute if an error occurs in the loop. It can be `continue`, `break` or `raise`. The default is to raise an error.
+| Parameter           | Description                                                                                                              |
+|---------------------|--------------------------------------------------------------------------------------------------------------------------|
+| `nodes`             | List of `action_node` or `if_else_node` nodes.                                                                           |
+| `reset_nodes`       | List of `action_node` or `if_else_node` nodes.                                                                           |
+| `on_error_in_loop`  | Action to execute if an error occurs in the loop. Can be `continue`, `break`, or `raise`. Default is to raise an error.  |
+
 
 ```json
 {
@@ -49,6 +52,36 @@ In other cases you might want to go to certain page, then loop over all the page
 Keep in mind that you need to assign the extracted values to a variable and then use that variable in the loop. otherwise loop cannot directly use the extracted values.
 
 Currently nested loops are not supported.
+
+### The `index` Variable
+
+Inside a `for_loop_node`, `index` is a special variable that represents the current iteration:
+
+If `order_ids = ["ORD-001", "ORD-002", "ORD-003"]`:
+
+- First iteration: `index = 0` → `"{order_ids[index]}"` evaluates to `"ORD-001"`
+- Second iteration: `index = 1` → `"{order_ids[index]}"` evaluates to `"ORD-002"`
+- Third iteration: `index = 2` → `"{order_ids[index]}"` evaluates to `"ORD-003"`
+
+### Using Index in Commands
+
+```json
+{
+  "type": "for_loop",
+  "variable_name": "product_names",
+  "nodes": [
+    {
+      "type": "action",
+      "interaction_action": {
+        "click_element": {
+          "command": "get_by_role(\"link\", name=\"{product_names[index]}\")",
+          "prompt_instructions": "Click on product {product_names[index]}"
+        }
+      }
+    }
+  ]
+}
+```
 
 ### How It Works
 
@@ -93,3 +126,102 @@ The default is to raise an error.
 `break` will break the loop and continue with the next node. This is useful if we want to stop the loop and continue with the next node outside the loop. This will not fail the automation.
 
 `raise` will raise an error and stop the loop. This is useful if we want the whole automation to fail if an error occurs in the loop.
+
+
+## Common Patterns
+
+### Process All Items in a Table
+
+```json
+[
+  {
+    "type": "action",
+    "extraction_action": {
+      "llm": {
+        "extraction_format": {
+          "item_ids": "List[str]"
+        },
+        "output_variable_names": ["item_ids"],
+        "extraction_instructions": "Extract all item IDs from the table",
+        "source": ["axtree"]
+      }
+    }
+  },
+  {
+    "type": "for_loop",
+    "variable_name": "item_ids",
+    "nodes": [
+      {
+        "type": "action",
+        "interaction_action": {
+          "click_element": {
+            "command": "get_by_text(\"{item_ids[index]}\")",
+            "prompt_instructions": "Click on item {item_ids[index]}"
+          }
+        }
+      },
+      {
+        "type": "action",
+        "action": {}
+      },
+      {
+        "type": "action",
+        "interaction_action": {
+          "go_back": {}
+        }
+      }
+    ]
+  }
+]
+```
+
+### Paginated Results
+
+```json
+{
+  "type": "for_loop",
+  "variable_name": "page_numbers",
+  "nodes": [
+    {
+      "type": "action",
+      "interaction_action": {
+        "click_element": {
+          "command": "get_by_text(\"{page_numbers[index]}\")",
+          "prompt_instructions": "Click page {page_numbers[index]}"
+        }
+      }
+    },
+    {
+      "type": "action",
+      "extraction_action": {}
+    }
+  ]
+}
+```
+
+### Download Multiple Files
+
+```json
+{
+  "type": "for_loop",
+  "variable_name": "document_links",
+  "nodes": [
+    {
+      "type": "action",
+      "interaction_action": {
+        "click_element": {
+          "command": "get_by_role(\"link\", name=\"{document_links[index]}\")",
+          "prompt_instructions": "Click to download {document_links[index]}",
+          "expect_download": true
+        }
+      }
+    }
+  ]
+}
+```
+
+## Limitations
+
+- `for_loop_node` requires the variable to be populated before the loop executes
+- Variables in loops are replaced at runtime, so dynamic commands must use the `{var[index]}` syntax
+- Nested loops can be complex; consider breaking into separate automations for clarity

@@ -18,26 +18,20 @@ Two agentic action types are available:
 
 ## AgenticTask
 
-Use `AgenticTask` when you need the AI to autonomously accomplish a goal.
+Use `agentic_task` when you need the AI to autonomously accomplish a goal.
 
-```python
-from optexity.schema.automation import ActionNode
-from optexity.schema.actions.interaction_action import (
-    InteractionAction,
-    AgenticTask,
-)
-
-ActionNode(
-    interaction_action=InteractionAction(
-        agentic_task=AgenticTask(
-            task="Navigate to the settings page and enable two-factor authentication",
-            max_steps=15,
-            backend="browser_use",
-            use_vision=False,
-            keep_alive=True,
-        )
-    )
-)
+```json
+{
+  "interaction_action": {
+    "agentic_task": {
+      "task": "Navigate to the settings page and enable two-factor authentication",
+      "max_steps": 15,
+      "backend": "browser_use",
+      "use_vision": false,
+      "keep_alive": true
+    }
+  }
+}
 ```
 
 ### Properties
@@ -56,28 +50,54 @@ The `task` field should clearly describe the goal:
 
 **Good examples:**
 
-```python
-# Specific and actionable
-task="Click the 'Account Settings' link in the sidebar, then scroll down and click 'Security'"
+```json
+{
+  "agentic_task": {
+    "task": "Click the 'Account Settings' link in the sidebar, then scroll down and click 'Security'"
+  }
+}
+```
 
-# Clear success criteria
-task="Fill out the contact form with name 'John Doe', email 'john@example.com', and message 'Hello', then submit"
+```json
+{
+  "agentic_task": {
+    "task": "Fill out the contact form with name 'John Doe', email 'john@example.com', and message 'Hello', then submit"
+  }
+}
+```
 
-# Step-by-step when needed
-task="1. Close any popup dialogs 2. Click the search icon 3. Search for 'laptop' 4. Click the first result"
+```json
+{
+  "agentic_task": {
+    "task": "1. Close any popup dialogs 2. Click the search icon 3. Search for 'laptop' 4. Click the first result"
+  }
+}
 ```
 
 **Poor examples:**
 
-```python
-# Too vague
-task="Do the thing"
+```json
+{
+  "agentic_task": {
+    "task": "Do the thing"
+  }
+}
+```
 
-# Ambiguous
-task="Complete the form"
+```json
+{
+  "agentic_task": {
+    "task": "Complete the form"
+  }
+}
+```
 
-# No clear end state
-task="Browse the website"
+```json
+{
+  "agentic_task": {
+    "task": "Browse the website"
+  }
+}
 ```
 
 ### max_steps Configuration
@@ -103,15 +123,17 @@ Higher `max_steps` means longer execution time and higher LLM costs. Start low a
 
 ### use_vision
 
-When `use_vision=True`, the agent receives screenshots:
+When `use_vision=true`, the agent receives screenshots:
 
-```python
-AgenticTask(
-    task="Click on the red 'Sale' banner",
-    max_steps=5,
-    backend="browser_use",
-    use_vision=True,  # Agent can "see" the page
-)
+```json
+{
+  "agentic_task": {
+    "task": "Click on the red 'Sale' banner",
+    "max_steps": 5,
+    "backend": "browser_use",
+    "use_vision": true
+  }
+}
 ```
 
 Use vision for:
@@ -128,24 +150,19 @@ Avoid vision when:
 
 A specialized agentic task for dismissing popups, modals, and overlays.
 
-```python
-from optexity.schema.actions.interaction_action import (
-    InteractionAction,
-    CloseOverlayPopupAction,
-)
-
-ActionNode(
-    interaction_action=InteractionAction(
-        close_overlay_popup=CloseOverlayPopupAction(
-            max_steps=5,
-        )
-    )
-)
+```json
+{
+  "interaction_action": {
+    "close_overlay_popup": {
+      "max_steps": 5
+    }
+  }
+}
 ```
 
 ### Default Behavior
 
-`CloseOverlayPopupAction` comes with pre-configured defaults:
+`close_overlay_popup` comes with pre-configured defaults:
 
 | Property | Default Value |
 |----------|---------------|
@@ -176,99 +193,102 @@ The agent follows these rules:
 
 ### When to Use
 
-```python
-# At the start of an automation to clear the page
-ActionNode(
-    interaction_action=InteractionAction(
-        close_overlay_popup=CloseOverlayPopupAction(max_steps=5)
-    ),
-    before_sleep_time=3.0,  # Wait for popups to appear
-),
+```json
+{
+  "interaction_action": {
+    "close_overlay_popup": {
+      "max_steps": 5
+    }
+  },
+  "before_sleep_time": 3.0
+}
+```
 
-# Before extracting data
-ActionNode(
-    extraction_action=ExtractionAction(...)
-),
+```json
+{
+  "extraction_action": {
+    // ... extraction configuration
+  }
+}
 ```
 
 ## Using Variables in Agentic Tasks
 
 Variables can be substituted in the `task` field:
 
-```python
-parameters=Parameters(
-    input_parameters={
-        "search_query": ["laptop"],
-        "price_max": ["1000"],
-    },
-    ...
-),
-
-ActionNode(
-    interaction_action=InteractionAction(
-        agentic_task=AgenticTask(
-            task="Search for '{search_query[0]}' and filter results to show items under ${price_max[0]}",
-            max_steps=10,
-            backend="browser_use",
-        )
-    )
-),
+```json
+{
+  "parameters": {
+    "input_parameters": {
+      "search_query": ["laptop"],
+      "price_max": ["1000"]
+    }
+  },
+  "action_nodes": [
+    {
+      "interaction_action": {
+        "agentic_task": {
+          "task": "Search for '{search_query[0]}' and filter results to show items under ${price_max[0]}",
+          "max_steps": 10,
+          "backend": "browser_use"
+        }
+      }
+    }
+  ]
+}
 ```
 
 ## Combining Agentic with Static Actions
 
 Agentic tasks work best as part of a larger automation:
 
-```python
-# Static: Login with known credentials
-ActionNode(
-    interaction_action=InteractionAction(
-        input_text=InputTextAction(
-            command="""get_by_label("Email")""",
-            input_text="{email[0]}",
-            prompt_instructions="Enter email",
-        )
-    )
-),
-ActionNode(
-    interaction_action=InteractionAction(
-        input_text=InputTextAction(
-            command="""get_by_label("Password")""",
-            input_text="{password[0]}",
-            prompt_instructions="Enter password",
-        )
-    )
-),
-ActionNode(
-    interaction_action=InteractionAction(
-        click_element=ClickElementAction(
-            command="""get_by_role("button", name="Sign In")""",
-            prompt_instructions="Click sign in",
-        )
-    )
-),
-
-# Agentic: Handle variable dashboard navigation
-ActionNode(
-    interaction_action=InteractionAction(
-        agentic_task=AgenticTask(
-            task="Navigate to the Reports section and find the Monthly Summary report",
-            max_steps=10,
-            backend="browser_use",
-        )
-    )
-),
-
-# Static: Download the report
-ActionNode(
-    interaction_action=InteractionAction(
-        click_element=ClickElementAction(
-            command="""get_by_role("button", name="Download")""",
-            prompt_instructions="Download the report",
-            expect_download=True,
-        )
-    )
-),
+```json
+[
+  {
+    "interaction_action": {
+      "input_text": {
+        "command": "get_by_label(\"Email\")",
+        "input_text": "{email[0]}",
+        "prompt_instructions": "Enter email"
+      }
+    }
+  },
+  {
+    "interaction_action": {
+      "input_text": {
+        "command": "get_by_label(\"Password\")",
+        "input_text": "{password[0]}",
+        "prompt_instructions": "Enter password"
+      }
+    }
+  },
+  {
+    "interaction_action": {
+      "click_element": {
+        "command": "get_by_role(\"button\", name=\"Sign In\")",
+        "prompt_instructions": "Click sign in"
+      }
+    }
+  },
+  {
+    "interaction_action": {
+      "agentic_task": {
+        "task": "Navigate to the Reports section and find the Monthly Summary report",
+        "max_steps": 10,
+        "backend": "browser_use"
+      }
+    }
+  },
+  {
+    "interaction_action": {
+      "click_element": {
+        "command": "get_by_role(\"button\", name=\"Download\")",
+        "prompt_instructions": "Download the report",
+        "expect_download": true
+      }
+    }
+  }
+]
 ```
 
 ## When to Use Agentic Tasks
@@ -300,29 +320,28 @@ Agentic tasks can fail if:
 
 Consider adding fallback static actions:
 
-```python
-# Try agentic approach first
-ActionNode(
-    interaction_action=InteractionAction(
-        agentic_task=AgenticTask(
-            task="Find and click the logout button",
-            max_steps=5,
-            backend="browser_use",
-        )
-    )
-),
-
-# Fallback: direct locator if agentic fails
-ActionNode(
-    interaction_action=InteractionAction(
-        click_element=ClickElementAction(
-            command="""get_by_role("button", name="Logout")""",
-            prompt_instructions="Click logout",
-            skip_prompt=True,
-            assert_locator_presence=True,
-        )
-    )
-),
+```json
+[
+  {
+    "interaction_action": {
+      "agentic_task": {
+        "task": "Find and click the logout button",
+        "max_steps": 5,
+        "backend": "browser_use"
+      }
+    }
+  },
+  {
+    "interaction_action": {
+      "click_element": {
+        "command": "get_by_role(\"button\", name=\"Logout\")",
+        "prompt_instructions": "Click logout",
+        "skip_prompt": true,
+        "assert_locator_presence": true
+      }
+    }
+  }
+]
 ```
 
 ## Best Practices
@@ -331,32 +350,64 @@ ActionNode(
 
 Use static actions for predictable interactions:
 
-```python
-# Good: Static for known elements
-ClickElementAction(
-    command="""get_by_role("button", name="Submit")""",
-    ...
-)
+```json
+{
+  "interaction_action": {
+    "click_element": {
+      "command": "get_by_role(\"button\", name=\"Submit\")"
+    }
+  }
+}
+```
 
-# Save agentic for the complex parts
-AgenticTask(
-    task="Handle any CAPTCHA that appears",
-    ...
-)
+```json
+{
+  "interaction_action": {
+    "agentic_task": {
+      "task": "Handle any CAPTCHA that appears"
+    }
+  }
+}
 ```
 
 ### Keep Tasks Focused
 
 Break complex goals into smaller agentic tasks:
 
-```python
-# Instead of one big task
-AgenticTask(task="Sign up for an account, verify email, and complete profile")
+```json
+{
+  "interaction_action": {
+    "agentic_task": {
+      "task": "Sign up for an account, verify email, and complete profile"
+    }
+  }
+}
+```
 
-# Use multiple focused tasks
-AgenticTask(task="Fill out the signup form with the provided information"),
-AgenticTask(task="Click the verification link in the confirmation page"),
-AgenticTask(task="Complete the profile setup wizard"),
+```json
+[
+  {
+    "interaction_action": {
+      "agentic_task": {
+        "task": "Fill out the signup form with the provided information"
+      }
+    }
+  },
+  {
+    "interaction_action": {
+      "agentic_task": {
+        "task": "Click the verification link in the confirmation page"
+      }
+    }
+  },
+  {
+    "interaction_action": {
+      "agentic_task": {
+        "task": "Complete the profile setup wizard"
+      }
+    }
+  }
+]
 ```
 
 ### Monitor and Iterate

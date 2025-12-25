@@ -7,265 +7,286 @@ Interaction actions are the most common action type in Optexity. They represent 
 
 ## Overview
 
-Every interaction action is wrapped in an `InteractionAction` container:
+Every interaction action is wrapped in an `interaction_action` container:
 
-```python
-from optexity.schema.actions.interaction_action import (
-    InteractionAction,
-    ClickElementAction,
-)
-from optexity.schema.automation import ActionNode
-
-node = ActionNode(
-    interaction_action=InteractionAction(
-        click_element=ClickElementAction(
-            command="""get_by_role("button", name="Submit")""",
-            prompt_instructions="Click the submit button",
-        )
-    )
-)
+```json
+{
+    "interaction_action": {
+        "click_element": {
+            "command": "get_by_role(\"button\", name=\"Submit\")",
+            "prompt_instructions": "Click the submit button"
+        }
+    }
+}
 ```
 
-An `InteractionAction` contains exactly one of the following action types:
+An `interaction_action` contains exactly one of the following action types:
 
-| Action | Purpose |
-|--------|---------|
-| `click_element` | Click on an element |
-| `input_text` | Type text into a field |
-| `select_option` | Select from a dropdown |
-| `check` | Check/uncheck a checkbox |
-| `scroll` | Scroll the page |
-| `go_to_url` | Navigate to a URL |
-| `go_back` | Go back in browser history |
+| Action                | Purpose                            |
+| --------------------- | ---------------------------------- |
+| `click_element`       | Click on an element                |
+| `input_text`          | Type text into a field             |
+| `select_option`       | Select from a dropdown             |
+| `check`               | Check/uncheck a checkbox           |
+| `download_url_as_pdf` | Download current page as PDF       |
+| `upload_file`         | Upload a file                      |
+| `go_to_url`           | Navigate to a URL                  |
+| `go_back`             | Go back in browser history         |
+| `close_tabs_until`    | Close tabs until a given condition |
+| `agentic_task`        | AI agent for complex interactions  |
+| `close_overlay_popup` | Dismiss popups and modals          |
+| `key_press`           | Press a keyboard key               |
+
+### Other properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `max_tries` | `int` | `10` | Maximum number of attempts to find and interact with the element |
+| `max_timeout_seconds_per_try` | `float` | `1.0` | Seconds to wait for the element on each attempt |
+
+Refer to bottom of the page for more details on these properties.
+
+{/* {/_ | `scroll` | Scroll the page (Currently not supported. Request the founder or contribute to opensource) |
 | `switch_tab` | Switch to a different tab |
 | `close_current_tab` | Close the current tab |
-| `close_all_but_last_tab` | Close all tabs except the last |
-| `upload_file` | Upload a file |
-| `download_url_as_pdf` | Download current page as PDF |
-| `agentic_task` | AI agent for complex interactions |
-| `close_overlay_popup` | Dismiss popups and modals |
+| `close_all_but_last_tab` | Close all tabs except the last | _/} */}
+
+## Click, Input Text, Select Option, Check, Upload File
+
+These actions are used to interact with the browser. They all have general same properties that are shared by all of them. they also have some specific properties that are unique to each action.
+
+### General Properties
+
+| Property                  | Type          | Default  | Description                             |
+| ------------------------- | ------------- | -------- | --------------------------------------- |
+| `command`                 | `str \| None` | `None`   | Playwright locator command              |
+| `xpath`                   | `str \| None` | `None`   | XPath selector (alternative to command) |
+| `prompt_instructions`     | `str`         | Required | Description for AI fallback             |
+| `skip_prompt`             | `bool`        | `False`  | Skip AI prompt if locator fails         |
+| `assert_locator_presence` | `bool`        | `False`  | Only act if element exists              |
+
+-   `command` and `xpath` are mutually exclusive. You can only provide one of them. They are used to find the element on the page deterministically. There is no LLM tokens spent on finding the element. These are fast and highly reliable if you know the element locator.
+
+-   `prompt_instructions` is used to describe the element to the AI. This is used when the element is not found using the `command` or `xpath` locator. This is a fallback and is used to find the element visually.
+
+-   `skip_prompt` is used to skip the AI prompt if the locator fails. This is useful there are some optional elements that appear sometimes but not always.
+
+-   `assert_locator_presence` is used as a checkpoint to verify that the element exists before performing the action.
+    Say you always know the element exists then you can set `assert_locator_presence` to `true`. If somehow this fails you know there has been some error in the automation and you want it to fail early rather than continuing with the automation.
 
 ## Click Element
 
-The most common interaction—clicking buttons, links, and other elements.
+The most common interaction—clicking buttons, links, and other elements. It has got some specific properties that are unique to it apart from the general properties.
 
-```python
-from optexity.schema.actions.interaction_action import (
-    InteractionAction,
-    ClickElementAction,
-)
+```json
+{
+    "interaction_action": {
+        "click_element": {
+            "command": "get_by_role(\"button\", name=\"Submit\")",
+            "prompt_instructions": "Click the submit button"
+        }
+    }
+}
+```
 
-# Basic click
-ActionNode(
-    interaction_action=InteractionAction(
-        click_element=ClickElementAction(
-            command="""get_by_role("button", name="Submit")""",
-            prompt_instructions="Click the submit button",
-        )
-    )
-)
+**Double click:** Add the `double_click` property to the `click_element` action.
 
-# Double click
-ActionNode(
-    interaction_action=InteractionAction(
-        click_element=ClickElementAction(
-            command="""get_by_role("row", name="Item 1")""",
-            prompt_instructions="Double click the first row",
-            double_click=True,
-        )
-    )
-)
+```json
+{
+    "interaction_action": {
+        "click_element": {
+            "command": "get_by_role(\"row\", name=\"Item 1\")",
+            "prompt_instructions": "Double click the first row",
+            "double_click": true
+        }
+    }
+}
+```
 
-# Click that triggers download
-ActionNode(
-    interaction_action=InteractionAction(
-        click_element=ClickElementAction(
-            command="""get_by_role("button", name="Export")""",
-            prompt_instructions="Click the export button",
-            expect_download=True,
-            download_filename="report.pdf",
-        )
-    )
-)
+Click that triggers download: Add the `expect_download` and `download_filename` properties to the `click_element` action.
+The `download_filename` property is optional and will be auto-generated if not provided. The auto-generated filename will be a UUID.
+
+```json
+{
+    "interaction_action": {
+        "click_element": {
+            "command": "get_by_role(\"button\", name=\"Export\")",
+            "prompt_instructions": "Click the export button",
+            "expect_download": true,
+            "download_filename": "report.pdf"
+        }
+    }
+}
 ```
 
 ### Properties
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `command` | `str \| None` | `None` | Playwright locator command |
-| `xpath` | `str \| None` | `None` | XPath selector (alternative to command) |
-| `prompt_instructions` | `str` | Required | Description for AI fallback |
-| `double_click` | `bool` | `False` | Perform double-click instead of single |
-| `expect_download` | `bool` | `False` | Whether click triggers a file download |
-| `download_filename` | `str \| None` | Auto-generated | Filename for downloaded file |
-| `skip_prompt` | `bool` | `False` | Skip AI prompt if locator fails |
-| `assert_locator_presence` | `bool` | `False` | Only act if element exists |
+| Property            | Type          | Default        | Description                            |
+| ------------------- | ------------- | -------------- | -------------------------------------- |
+| `double_click`      | `bool`        | `False`        | Perform double-click instead of single |
+| `expect_download`   | `bool`        | `False`        | Whether click triggers a file download |
+| `download_filename` | `str \| None` | Auto-generated | Filename for downloaded file           |
+
+-   `double_click` is used to perform a double-click instead of a single click.
+
+-   `expect_download` is used to specify that the click triggers a file download. Useful to track downloads. Optexity can handle random downloads even if you don't specify expect_download. However, it is recommended to specify expect_download to track downloads in better way.
+
+-   `download_filename` is used to specify the filename for the downloaded file. This is optional and will be auto-generated if not provided. The auto-generated filename will be a UUID.
 
 ## Input Text
 
 Enter text into input fields, textareas, or other editable elements.
 
-```python
-from optexity.schema.actions.interaction_action import (
-    InteractionAction,
-    InputTextAction,
-)
+Basic text input:
 
-# Basic text input
-ActionNode(
-    interaction_action=InteractionAction(
-        input_text=InputTextAction(
-            command="""get_by_label("Email")""",
-            input_text="{email[0]}",
-            prompt_instructions="Enter the email address",
-        )
-    )
-)
+```json
+{
+    "interaction_action": {
+        "input_text": {
+            "command": "get_by_label(\"Email\")",
+            "input_text": "{email[0]}",
+            "prompt_instructions": "Enter the email address"
+        }
+    }
+}
+```
 
-# Using type instead of fill (for character-by-character input)
-ActionNode(
-    interaction_action=InteractionAction(
-        input_text=InputTextAction(
-            command="""get_by_label("Search")""",
-            input_text="laptop computers",
-            prompt_instructions="Type the search query",
-            fill_or_type="type",  # Types each character
-        )
-    )
-)
+Using type instead of fill (for character-by-character input):
 
-# Slider input
-ActionNode(
-    interaction_action=InteractionAction(
-        input_text=InputTextAction(
-            command="""get_by_role("slider", name="Price")""",
-            input_text="500",
-            prompt_instructions="Set the price slider to 500",
-            is_slider=True,
-        )
-    )
-)
+```json
+{
+    "interaction_action": {
+        "input_text": {
+            "command": "get_by_label(\"Search\")",
+            "input_text": "laptop computers",
+            "prompt_instructions": "Type the search query",
+            "fill_or_type": "type"
+        }
+    }
+}
+```
+
+Slider input:
+
+```json
+{
+    "interaction_action": {
+        "input_text": {
+            "command": "get_by_role(\"slider\", name=\"Price\")",
+            "input_text": "500",
+            "prompt_instructions": "Set the price slider to 500",
+            "is_slider": true
+        }
+    }
+}
 ```
 
 ### Fill vs Type
 
-| Mode | Behavior | Use When |
-|------|----------|----------|
-| `fill` (default) | Sets value instantly | Standard form fields |
-| `type` | Types each character | Autocomplete fields, search boxes with suggestions |
+| Mode             | Behavior             | Use When                                           |
+| ---------------- | -------------------- | -------------------------------------------------- |
+| `fill` (default) | Sets value instantly | Standard form fields                               |
+| `type`           | Types each character | Autocomplete fields, search boxes with suggestions |
 
 ### Properties
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `command` | `str \| None` | `None` | Playwright locator command |
-| `xpath` | `str \| None` | `None` | XPath selector |
-| `prompt_instructions` | `str` | Required | Description for AI fallback |
-| `input_text` | `str \| None` | `None` | Text to enter (supports variable substitution) |
-| `fill_or_type` | `"fill" \| "type"` | `"fill"` | How to enter the text |
-| `is_slider` | `bool` | `False` | Whether element is a slider |
+| Property       | Type               | Default  | Description                                    |
+| -------------- | ------------------ | -------- | ---------------------------------------------- |
+| `input_text`   | `str \| None`      | `None`   | Text to enter (supports variable substitution) |
+| `fill_or_type` | `"fill" \| "type"` | `"fill"` | How to enter the text                          |
+| `is_slider`    | `bool`             | `False`  | Whether element is a slider                    |
+| `press_enter`  | `bool`             | `False`  | Whether to press enter after typing            |
+
+-   `input_text` is used to specify the text to enter. It supports variable substitution. if the input text is a variable which is empty, then this action is skipped. Eg: `input_text="{email[0]}"` will enter the email address if the email address is not empty. If the email address list is empty, then this action is skipped.
+
+-   `assert_locator_presence` is used as a checkpoint to verify that the element exists before performing the action.
+    Say you always know the element exists then you can set `assert_locator_presence` to `true`. If somehow this fails you know there has been some error in the automation and you want it to fail early rather than continuing with the automation.
+
+-   `skip_prompt` is used to skip the AI prompt if the locator fails. This is useful there are some optional elements that appear sometimes but not always.
+
+-   `press_enter` is used to press enter after typing. This is useful when you want to submit a form or perform an action after typing.
 
 ## Select Option
 
 Select values from dropdown menus.
 
-```python
-from optexity.schema.actions.interaction_action import (
-    InteractionAction,
-    SelectOptionAction,
-)
+Select single option:
 
-# Select single option
-ActionNode(
-    interaction_action=InteractionAction(
-        select_option=SelectOptionAction(
-            command="""get_by_label("Country")""",
-            select_values=["United States"],
-            prompt_instructions="Select United States from the country dropdown",
-        )
-    )
-)
+```json
+{
+    "interaction_action": {
+        "select_option": {
+            "command": "get_by_label(\"Country\")",
+            "select_values": ["United States"],
+            "prompt_instructions": "Select United States from the country dropdown"
+        }
+    }
+}
+```
 
-# Select using variable
-ActionNode(
-    interaction_action=InteractionAction(
-        select_option=SelectOptionAction(
-            command="""get_by_label("Plan Type")""",
-            select_values=["{plan_type[0]}"],
-            prompt_instructions="Select the plan type",
-        )
-    )
-)
+Select using variable:
 
-# Select that triggers download
-ActionNode(
-    interaction_action=InteractionAction(
-        select_option=SelectOptionAction(
-            command="""get_by_label("Export Format")""",
-            select_values=["CSV"],
-            prompt_instructions="Select CSV export",
-            expect_download=True,
-            download_filename="data.csv",
-        )
-    )
-)
+```json
+{
+    "interaction_action": {
+        "select_option": {
+            "command": "get_by_label(\"Plan Type\")",
+            "select_values": ["{plan_type[0]}"],
+            "prompt_instructions": "Select the plan type"
+        }
+    }
+}
+```
+
+Select that triggers download:
+
+```json
+{
+    "interaction_action": {
+        "select_option": {
+            "command": "get_by_label(\"Export Format\")",
+            "select_values": ["CSV"],
+            "prompt_instructions": "Select CSV export",
+            "expect_download": true,
+            "download_filename": "data.csv"
+        }
+    }
+}
 ```
 
 ### Properties
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `command` | `str \| None` | `None` | Playwright locator command |
-| `xpath` | `str \| None` | `None` | XPath selector |
-| `prompt_instructions` | `str` | Required | Description for AI fallback |
-| `select_values` | `list[str]` | Required | Values to select |
-| `expect_download` | `bool` | `False` | Whether selection triggers download |
-| `download_filename` | `str \| None` | Auto-generated | Filename for download |
+| Property            | Type          | Default        | Description                         |
+| ------------------- | ------------- | -------------- | ----------------------------------- |
+| `select_values`     | `list[str]`   | Required       | Values to select                    |
+| `expect_download`   | `bool`        | `False`        | Whether selection triggers download |
+| `download_filename` | `str \| None` | Auto-generated | Filename for download               |
+
+-   `select_values` is used to specify the values to select. It is list of values and hence it can select multiple values if the website allows multiple selection.
+
+-   `expect_download` is used to specify that the click triggers a file download. Useful to track downloads. Optexity can handle random downloads even if you don't specify expect_download. However, it is recommended to specify expect_download to track downloads in better way.
+
+-   `download_filename` is used to specify the filename for the downloaded file. This is optional and will be auto-generated if not provided. The auto-generated filename will be a UUID.
+
+### Fuzzy matching
+
+Select option requires the exact value to be given for correct selection. Hence it is better to always use the exact value is possible. These values are also case sensitive.
+
+However, optexity provides fuzzy matching for select option. If the exact value is not found, then optexity will try to find the closest match. This is useful when the value is not exact but similar. Eg: "United States" instead of "UNITED STATES OF AMERICA".
 
 ## Check (Checkbox/Radio)
 
-Check or uncheck checkboxes and radio buttons.
+Check or uncheck checkboxes and radio buttons. There is not specific properties for this action.
 
-```python
-from optexity.schema.actions.interaction_action import (
-    InteractionAction,
-    CheckAction,
-)
-
-ActionNode(
-    interaction_action=InteractionAction(
-        check=CheckAction(
-            command="""get_by_label("I agree to the terms")""",
-            prompt_instructions="Check the terms agreement checkbox",
-        )
-    )
-)
-```
-
-## Scroll
-
-Scroll the page up or down.
-
-```python
-from optexity.schema.actions.interaction_action import (
-    InteractionAction,
-    ScrollAction,
-)
-
-# Scroll down
-ActionNode(
-    interaction_action=InteractionAction(
-        scroll=ScrollAction(down=True)
-    )
-)
-
-# Scroll up
-ActionNode(
-    interaction_action=InteractionAction(
-        scroll=ScrollAction(down=False)
-    )
-)
+```json
+{
+    "interaction_action": {
+        "check": {
+            "command": "get_by_label(\"I agree to the terms\")",
+            "prompt_instructions": "Check the terms agreement checkbox"
+        }
+    }
+}
 ```
 
 ## Navigation Actions
@@ -274,182 +295,177 @@ ActionNode(
 
 Navigate to a specific URL.
 
-```python
-from optexity.schema.actions.interaction_action import (
-    InteractionAction,
-    GoToUrlAction,
-)
+Navigate in current tab:
 
-# Navigate in current tab
-ActionNode(
-    interaction_action=InteractionAction(
-        go_to_url=GoToUrlAction(
-            url="https://example.com/dashboard",
-        )
-    )
-)
-
-# Open in new tab
-ActionNode(
-    interaction_action=InteractionAction(
-        go_to_url=GoToUrlAction(
-            url="https://example.com/settings",
-            new_tab=True,
-        )
-    )
-)
+```json
+{
+    "interaction_action": {
+        "go_to_url": {
+            "url": "https://example.com/dashboard"
+        }
+    }
+}
 ```
+
+Open in new tab:
+
+```json
+{
+    "interaction_action": {
+        "go_to_url": {
+            "url": "https://example.com/settings",
+            "new_tab": true
+        }
+    }
+}
+```
+
+### Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `url` | `str` | Required | URL to navigate to |
+| `new_tab` | `bool` | `False` | Open in new tab instead of current tab |
+
+-   `url` is used to specify the URL to navigate to. It supports variable substitution. Eg: `url="{url[0]}"` will navigate to the URL specified by the url variable.
+
+-   `new_tab` is used to specify that the URL should be opened in a new tab.
 
 ### Go Back
 
 Navigate back in browser history.
 
-```python
-from optexity.schema.actions.interaction_action import (
-    InteractionAction,
-    GoBackAction,
-)
-
-ActionNode(
-    interaction_action=InteractionAction(
-        go_back=GoBackAction()
-    )
-)
-```
-
-### Switch Tab
-
-Switch to a different browser tab by index.
-
-```python
-from optexity.schema.actions.interaction_action import (
-    InteractionAction,
-    SwitchTabAction,
-)
-
-ActionNode(
-    interaction_action=InteractionAction(
-        switch_tab=SwitchTabAction(tab_index=0)  # Switch to first tab
-    )
-)
+```json
+{
+    "interaction_action": {
+        "go_back": {}
+    }
+}
 ```
 
 ### Close Tabs
 
-```python
-from optexity.schema.actions.interaction_action import (
-    InteractionAction,
-    CloseCurrentTabAction,
-    CloseAllButLastTabAction,
-)
+**Close Tabs Until:** Close tabs until a given condition is met. You can specify either the matching URL or the tab index to close.
 
-# Close current tab
-ActionNode(
-    interaction_action=InteractionAction(
-        close_current_tab=CloseCurrentTabAction()
-    )
-)
-
-# Close all tabs except the last one
-ActionNode(
-    interaction_action=InteractionAction(
-        close_all_but_last_tab=CloseAllButLastTabAction()
-    )
-)
+```json
+{
+    "interaction_action": {
+        "close_tabs_until": {
+            "matching_url": "https://example.com/dashboard"
+        }
+    }
+}
 ```
+
+### Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `matching_url` | `str \| None` | `None` | URL to close tabs until |
+| `tab_index` | `int \| None` | `None` | Index of the tab to close |
+
+-   `matching_url` is used to specify the URL to close tabs until. It supports variable substitution. Eg: `matching_url="{url[0]}"` will close tabs until the URL specified by the url variable is opened. If you know the url of the home page or some page, and then if your actions lead to more tabs opening up, you can use this to close the tabs until you are back to the home page.
+
+-   `tab_index` is used to specify the index of the tab to close. It is the index of the tab to close. It is 0 based index. Eg: `tab_index=0` will close all tabs except the first one. If you specify `tab_index=3`, then it will close all tabs after the fourth one.
 
 ## File Operations
 
 ### Upload File
 
-```python
-from optexity.schema.actions.interaction_action import (
-    InteractionAction,
-    UploadFileAction,
-)
-
-ActionNode(
-    interaction_action=InteractionAction(
-        upload_file=UploadFileAction(
-            command="""get_by_label("Upload Document")""",
-            file_path="/path/to/document.pdf",
-            prompt_instructions="Upload the document",
-        )
-    )
-)
+```json
+{
+    "interaction_action": {
+        "upload_file": {
+            "command": "get_by_label(\"Upload Document\")",
+            "file_path": "/path/to/document.pdf",
+            "prompt_instructions": "Upload the document"
+        }
+    }
+}
 ```
+
+File path is the absolute path to the file to upload or relative path to the file in the task's working directory. It supports variable substitution. Eg: `file_path="{document_path[0]}"` will upload the file at the path specified by the document_path variable.
 
 ### Download Page as PDF
 
-Download the current page content as a PDF file.
+Download the current page content as a PDF file. This is useful when say you click on a button and opens a pdf viewer. Now in most cases if you retrive the data of the url, then it will be same as downloading the pdf file. So this action is useful to download the pdf file directly.
 
-```python
-from optexity.schema.actions.interaction_action import (
-    InteractionAction,
-    DownloadUrlAsPdfAction,
-)
-
-ActionNode(
-    interaction_action=InteractionAction(
-        download_url_as_pdf=DownloadUrlAsPdfAction(
-            download_filename="page_snapshot.pdf"
-        )
-    )
-)
+```json
+{
+    "interaction_action": {
+        "download_url_as_pdf": {
+            "download_filename": "page_snapshot.pdf"
+        }
+    }
+}
 ```
+
+### Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| 'download_filename' | `str \| None` | Auto-generated | Filename for downloaded file |
+| `url` | `str \| None` | `None` | URL to download |
+
+- `download_filename` is used to specify the filename for the downloaded file. This is optional and will be auto-generated if not provided. The auto-generated filename will be a UUID.
+- `url` is optional. By default we download the url of the current page if nothing is specified. This works in most cases if you open a pdf in a new tab and then download it. If in anycase you know the url of the pdf file, then you can specify it here.
 
 ## Handling New Tabs
 
 When an action opens a new tab, use `expect_new_tab`:
 
-```python
-ActionNode(
-    interaction_action=InteractionAction(
-        click_element=ClickElementAction(
-            command="""get_by_role("button", name="Open Details")""",
-            prompt_instructions="Click to open details in new tab",
-        )
-    ),
-    expect_new_tab=True,  # Automation will wait for and switch to new tab
-)
+```json
+{
+    "interaction_action": {
+        "click_element": {
+            "command": "get_by_role(\"button\", name=\"Open Details\")",
+            "prompt_instructions": "Click to open details in new tab"
+        }
+    },
+    "expect_new_tab": true
+}
 ```
 
-## 2FA Timer
+{/* ## 2FA Timer
 
 Start a 2FA timer when clicking a button that triggers 2FA:
 
-```python
-ActionNode(
-    interaction_action=InteractionAction(
-        click_element=ClickElementAction(
-            command="""get_by_role("button", name="Sign In")""",
-            prompt_instructions="Click sign in to trigger 2FA",
-        ),
-        start_2fa_timer=True,  # Starts timer for subsequent 2FA fetch
-    )
-)
-```
+```json
+{
+    "interaction_action": {
+        "click_element": {
+            "command": "get_by_role(\"button\", name=\"Sign In\")",
+            "prompt_instructions": "Click sign in to trigger 2FA"
+        },
+        "start_2fa_timer": true
+    }
+}
+``` */}
 
 ## Retry Configuration
 
 Control how many times Optexity retries finding an element:
 
-```python
-ActionNode(
-    interaction_action=InteractionAction(
-        max_tries=5,  # Retry up to 5 times
-        max_timeout_seconds_per_try=2.0,  # Wait 2 seconds per try
-        click_element=ClickElementAction(
-            command="""get_by_role("button", name="Submit")""",
-            prompt_instructions="Click submit",
-        )
-    )
-)
+```json
+{
+    "interaction_action": {
+        "max_tries": 5,
+        "max_timeout_seconds_per_try": 2.0,
+        "click_element": {
+            "command": "get_by_role(\"button\", name=\"Submit\")",
+            "prompt_instructions": "Click submit"
+        }
+    }
+}
 ```
 
-## Next Steps
+### Properties
 
-- Learn about [Extraction Actions](/docs/extraction-actions) to capture data
-- See [Timing & Retries](/docs/timing-retries) for execution control
-- Explore [Agentic Tasks](/docs/agentic-tasks) for complex interactions
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `max_tries` | `int` | `10` | Maximum number of attempts to find and interact with the element |
+| `max_timeout_seconds_per_try` | `float` | `1.0` | Seconds to wait for the element on each attempt |
 
+-   `max_tries` is used to specify the maximum number of attempts to find and interact with the element. If you think website is slow, most likely you will need to increase this. It is generally better to increase this compared to `max_timeout_seconds_per_try`. This way opetixity will wait for the element to appear for a longer time before giving up but will also continue to next step faster as soon as the element is found. Minimum wait time is `max_timeout_seconds_per_try` per try.
+
+-   `max_timeout_seconds_per_try` is used to specify the seconds to wait for the element on each attempt.

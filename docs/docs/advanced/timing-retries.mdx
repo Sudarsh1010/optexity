@@ -11,8 +11,8 @@ Timing and retries are controlled at two levels:
 
 | Level | Properties |
 |-------|------------|
-| **ActionNode** | `before_sleep_time`, `end_sleep_time`, `expect_new_tab`, `max_new_tab_wait_time` |
-| **InteractionAction** | `max_tries`, `max_timeout_seconds_per_try` |
+| **action_node** | `before_sleep_time`, `end_sleep_time`, `expect_new_tab`, `max_new_tab_wait_time` |
+| **interaction_action** | `max_tries`, `max_timeout_seconds_per_try` |
 
 ## Sleep Times
 
@@ -20,32 +20,32 @@ Timing and retries are controlled at two levels:
 
 Time to wait **before** executing the action. Use this when you need the page to load or settle.
 
-```python
-ActionNode(
-    interaction_action=InteractionAction(
-        click_element=ClickElementAction(
-            command="""get_by_role("button", name="Submit")""",
-            prompt_instructions="Click submit",
-        )
-    ),
-    before_sleep_time=3.0,  # Wait 3 seconds before clicking
-)
+```json
+{
+  "interaction_action": {
+    "click_element": {
+      "command": "get_by_role(\"button\", name=\"Submit\")",
+      "prompt_instructions": "Click submit"
+    }
+  },
+  "before_sleep_time": 3.0
+}
 ```
 
 ### end_sleep_time
 
 Time to wait **after** the action completes. Use this when subsequent actions depend on the current action's effects.
 
-```python
-ActionNode(
-    interaction_action=InteractionAction(
-        click_element=ClickElementAction(
-            command="""get_by_role("button", name="Load More")""",
-            prompt_instructions="Click to load more results",
-        )
-    ),
-    end_sleep_time=2.0,  # Wait 2 seconds for results to load
-)
+```json
+{
+  "interaction_action": {
+    "click_element": {
+      "command": "get_by_role(\"button\", name=\"Load More\")",
+      "prompt_instructions": "Click to load more results"
+    }
+  },
+  "end_sleep_time": 2.0
+}
 ```
 
 ### Default Values
@@ -69,29 +69,34 @@ These defaults are designed for typical use cases:
 
 Sleep times must be between 0 and 10 seconds:
 
-```python
-before_sleep_time=0.0   # Minimum
-before_sleep_time=10.0  # Maximum
+```json
+{
+  "before_sleep_time": 0.0
+}
+
+{
+  "before_sleep_time": 10.0
+}
 ```
 
 ## Retry Configuration
 
-When element location fails, Optexity can retry. This is configured on `InteractionAction`.
+When element location fails, Optexity can retry. This is configured on `interaction_action`.
 
 ### max_tries
 
 Maximum number of attempts to find and interact with the element.
 
-```python
-ActionNode(
-    interaction_action=InteractionAction(
-        max_tries=10,  # Try up to 10 times
-        click_element=ClickElementAction(
-            command="""get_by_role("button", name="Submit")""",
-            prompt_instructions="Click submit",
-        )
-    )
-)
+```json
+{
+  "interaction_action": {
+    "max_tries": 10,
+    "click_element": {
+      "command": "get_by_role(\"button\", name=\"Submit\")",
+      "prompt_instructions": "Click submit"
+    }
+  }
+}
 ```
 
 Default: `10`
@@ -100,17 +105,17 @@ Default: `10`
 
 How long to wait for the element on each attempt.
 
-```python
-ActionNode(
-    interaction_action=InteractionAction(
-        max_tries=5,
-        max_timeout_seconds_per_try=2.0,  # Wait 2 seconds per try
-        click_element=ClickElementAction(
-            command="""get_by_role("button", name="Submit")""",
-            prompt_instructions="Click submit",
-        )
-    )
-)
+```json
+{
+  "interaction_action": {
+    "max_tries": 5,
+    "max_timeout_seconds_per_try": 2.0,
+    "click_element": {
+      "command": "get_by_role(\"button\", name=\"Submit\")",
+      "prompt_instructions": "Click submit"
+    }
+  }
+}
 ```
 
 Default: `1.0` seconds
@@ -126,12 +131,12 @@ Default: `1.0` seconds
 
 When `skip_prompt=True` on an action, retries are reduced:
 
-```python
-ClickElementAction(
-    command="""get_by_role("button", name="Dismiss")""",
-    prompt_instructions="Click dismiss if visible",
-    skip_prompt=True,  # Reduces max_tries to 5
-)
+```json
+{
+  "command": "get_by_role(\"button\", name=\"Dismiss\")",
+  "prompt_instructions": "Click dismiss if visible",
+  "skip_prompt": true
+}
 ```
 
 This is useful for optional elements that might not always be present.
@@ -142,16 +147,16 @@ This is useful for optional elements that might not always be present.
 
 When an action opens a new browser tab, set `expect_new_tab=True`:
 
-```python
-ActionNode(
-    interaction_action=InteractionAction(
-        click_element=ClickElementAction(
-            command="""get_by_role("link", name="Open Report")""",
-            prompt_instructions="Click to open report in new tab",
-        )
-    ),
-    expect_new_tab=True,
-)
+```json
+{
+  "interaction_action": {
+    "click_element": {
+      "command": "get_by_role(\"link\", name=\"Open Report\")",
+      "prompt_instructions": "Click to open report in new tab"
+    }
+  },
+  "expect_new_tab": true
+}
 ```
 
 When `expect_new_tab=True`:
@@ -164,17 +169,17 @@ When `expect_new_tab=True`:
 
 Maximum time to wait for a new tab to appear.
 
-```python
-ActionNode(
-    interaction_action=InteractionAction(
-        click_element=ClickElementAction(
-            command="""get_by_role("button", name="Generate PDF")""",
-            prompt_instructions="Click to generate PDF in new tab",
-        )
-    ),
-    expect_new_tab=True,
-    max_new_tab_wait_time=15.0,  # Wait up to 15 seconds
-)
+```json
+{
+  "interaction_action": {
+    "click_element": {
+      "command": "get_by_role(\"button\", name=\"Generate PDF\")",
+      "prompt_instructions": "Click to generate PDF in new tab"
+    }
+  },
+  "expect_new_tab": true,
+  "max_new_tab_wait_time": 15.0
+}
 ```
 
 Default when `expect_new_tab=True`: `10.0` seconds
@@ -186,87 +191,88 @@ Default when `expect_new_tab=False`: `0.0` seconds
 
 For pages that take time to load:
 
-```python
-ActionNode(
-    interaction_action=InteractionAction(
-        click_element=ClickElementAction(
-            command="""get_by_role("button", name="Search")""",
-            prompt_instructions="Click search",
-        )
-    ),
-    end_sleep_time=5.0,  # Wait for results to load
-),
-ActionNode(
-    extraction_action=ExtractionAction(
-        llm=LLMExtraction(...)
-    ),
-    before_sleep_time=3.0,  # Additional wait before extracting
-)
+```json
+[
+  {
+    "interaction_action": {
+      "click_element": {
+        "command": "get_by_role(\"button\", name=\"Search\")",
+        "prompt_instructions": "Click search"
+      }
+    },
+    "end_sleep_time": 5.0
+  },
+  {
+    "extraction_action": {
+      "llm": {}
+    },
+    "before_sleep_time": 3.0
+  }
+]
 ```
 
 ### AJAX/Dynamic Content
 
 For content that loads dynamically:
 
-```python
-ActionNode(
-    interaction_action=InteractionAction(
-        max_tries=15,  # More retries
-        max_timeout_seconds_per_try=1.0,
-        click_element=ClickElementAction(
-            command="""get_by_role("button", name="Load More")""",
-            prompt_instructions="Click load more when it appears",
-        )
-    ),
-    before_sleep_time=2.0,  # Wait for button to appear
-)
+```json
+{
+  "interaction_action": {
+    "max_tries": 15,
+    "max_timeout_seconds_per_try": 1.0,
+    "click_element": {
+      "command": "get_by_role(\"button\", name=\"Load More\")",
+      "prompt_instructions": "Click load more when it appears"
+    }
+  },
+  "before_sleep_time": 2.0
+}
 ```
 
 ### Optional Elements
 
 For elements that may or may not be present:
 
-```python
-ActionNode(
-    interaction_action=InteractionAction(
-        max_tries=3,  # Fewer retries
-        click_element=ClickElementAction(
-            command="""get_by_role("button", name="Dismiss")""",
-            prompt_instructions="Dismiss popup if present",
-            skip_prompt=True,
-            assert_locator_presence=True,  # Skip if not found
-        )
-    )
-)
+```json
+{
+  "interaction_action": {
+    "max_tries": 3,
+    "click_element": {
+      "command": "get_by_role(\"button\", name=\"Dismiss\")",
+      "prompt_instructions": "Dismiss popup if present",
+      "skip_prompt": true,
+      "assert_locator_presence": true
+    }
+  }
+}
 ```
 
 ### After Form Submission
 
 After submitting forms that trigger server processing:
 
-```python
-# Submit the form
-ActionNode(
-    interaction_action=InteractionAction(
-        click_element=ClickElementAction(
-            command="""get_by_role("button", name="Submit")""",
-            prompt_instructions="Submit the form",
-        )
-    ),
-    end_sleep_time=3.0,  # Wait for processing
-),
-
-# Look for confirmation
-ActionNode(
-    interaction_action=InteractionAction(
-        max_tries=20,  # May take a while
-        max_timeout_seconds_per_try=1.0,
-        click_element=ClickElementAction(
-            command="""get_by_text("Confirmation")""",
-            prompt_instructions="Wait for confirmation message",
-        )
-    )
-)
+```json
+[
+  {
+    "interaction_action": {
+      "click_element": {
+        "command": "get_by_role(\"button\", name=\"Submit\")",
+        "prompt_instructions": "Submit the form"
+      }
+    },
+    "end_sleep_time": 3.0
+  },
+  {
+    "interaction_action": {
+      "max_tries": 20,
+      "max_timeout_seconds_per_try": 1.0,
+      "click_element": {
+        "command": "get_by_text(\"Confirmation\")",
+        "prompt_instructions": "Wait for confirmation message"
+      }
+    }
+  }
+]
 ```
 
 ## Timing Best Practices
@@ -313,9 +319,4 @@ Signs of timing problems:
 | Next action fails | Previous action effect not ready | Increase `end_sleep_time` |
 | Random failures | Race conditions | Increase retries and timeouts |
 
-## Next Steps
-
-- Learn about [Agentic Tasks](/docs/agentic-tasks) for handling unpredictable pages
-- See [Best Practices](/docs/best-practices) for more reliability tips
-- Check [Interaction Actions](/docs/interaction-actions) for action-specific timing
 

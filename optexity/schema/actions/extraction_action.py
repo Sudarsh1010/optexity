@@ -58,7 +58,6 @@ class LLMExtraction(BaseModel):
 
 class NetworkCallExtraction(BaseModel):
     url_pattern: Optional[str] = None
-    header_filter: Optional[dict[str, str]] = None
     extract_from: None | Literal["request", "response"] = None
     download_from: None | Literal["request", "response"] = None
     download_filename: str | None = None

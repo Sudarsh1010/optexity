@@ -19,23 +19,17 @@ Files can be downloaded in several ways:
 
 When clicking an element triggers a file download:
 
-```python
-from optexity.schema.automation import ActionNode
-from optexity.schema.actions.interaction_action import (
-    InteractionAction,
-    ClickElementAction,
-)
-
-ActionNode(
-    interaction_action=InteractionAction(
-        click_element=ClickElementAction(
-            command="""get_by_role("button", name="Download Report")""",
-            prompt_instructions="Click to download the report",
-            expect_download=True,
-            download_filename="monthly_report.pdf",
-        )
-    )
-)
+```json
+{
+  "interaction_action": {
+    "click_element": {
+      "command": "get_by_role(\"button\", name=\"Download Report\")",
+      "prompt_instructions": "Click to download the report",
+      "expect_download": true,
+      "download_filename": "monthly_report.pdf"
+    }
+  }
+}
 ```
 
 ### Properties for Downloads
@@ -49,56 +43,44 @@ ActionNode(
 
 If you don't specify `download_filename`, a UUID is generated:
 
-```python
-# Will save as something like: a1b2c3d4-e5f6-7890-abcd-ef1234567890
-ClickElementAction(
-    command="""get_by_text("Export")""",
-    prompt_instructions="Export data",
-    expect_download=True,
-    # download_filename not specified
-)
+```json
+{
+  "command": "get_by_text(\"Export\")",
+  "prompt_instructions": "Export data",
+  "expect_download": true
+}
 ```
 
 ### Select Option to Download
 
 Some sites trigger downloads when selecting dropdown options:
 
-```python
-from optexity.schema.actions.interaction_action import (
-    InteractionAction,
-    SelectOptionAction,
-)
-
-ActionNode(
-    interaction_action=InteractionAction(
-        select_option=SelectOptionAction(
-            command="""get_by_label("Export Format")""",
-            select_values=["CSV"],
-            prompt_instructions="Select CSV to download",
-            expect_download=True,
-            download_filename="data_export.csv",
-        )
-    )
-)
+```json
+{
+  "interaction_action": {
+    "select_option": {
+      "command": "get_by_label(\"Export Format\")",
+      "select_values": ["CSV"],
+      "prompt_instructions": "Select CSV to download",
+      "expect_download": true,
+      "download_filename": "data_export.csv"
+    }
+  }
+}
 ```
 
 ### Download Current Page as PDF
 
 Save the current page content as a PDF file:
 
-```python
-from optexity.schema.actions.interaction_action import (
-    InteractionAction,
-    DownloadUrlAsPdfAction,
-)
-
-ActionNode(
-    interaction_action=InteractionAction(
-        download_url_as_pdf=DownloadUrlAsPdfAction(
-            download_filename="page_snapshot.pdf"
-        )
-    )
-)
+```json
+{
+  "interaction_action": {
+    "download_url_as_pdf": {
+      "download_filename": "page_snapshot.pdf"
+    }
+  }
+}
 ```
 
 This is useful for:
@@ -110,36 +92,34 @@ This is useful for:
 
 When downloading multiple files in a loop:
 
-```python
-from optexity.schema.automation import ForLoopNode, ActionNode
-
-# First, extract document IDs
-ActionNode(
-    extraction_action=ExtractionAction(
-        llm=LLMExtraction(
-            extraction_format={"doc_ids": "List[str]"},
-            output_variable_names=["doc_ids"],
-            ...
-        )
-    )
-),
-
-# Download each document
-ForLoopNode(
-    variable_name="doc_ids",
-    nodes=[
-        ActionNode(
-            interaction_action=InteractionAction(
-                click_element=ClickElementAction(
-                    command="""get_by_text("{doc_ids[index]}")""",
-                    prompt_instructions="Click to download document {doc_ids[index]}",
-                    expect_download=True,
-                    download_filename="document_{doc_ids[index]}.pdf",
-                )
-            )
-        ),
-    ],
-)
+```json
+[
+  {
+    "extraction_action": {
+      "llm": {
+        "extraction_format": {
+          "doc_ids": "List[str]"
+        },
+        "output_variable_names": ["doc_ids"]
+      }
+    }
+  },
+  {
+    "variable_name": "doc_ids",
+    "nodes": [
+      {
+        "interaction_action": {
+          "click_element": {
+            "command": "get_by_text(\"{doc_ids[index]}\")",
+            "prompt_instructions": "Click to download document {doc_ids[index]}",
+            "expect_download": true,
+            "download_filename": "document_{doc_ids[index]}.pdf"
+          }
+        }
+      }
+    ]
+  }
+]
 ```
 
 <Note>
@@ -150,21 +130,16 @@ Use variable substitution in `download_filename` to create unique filenames for 
 
 Upload files to file input elements:
 
-```python
-from optexity.schema.actions.interaction_action import (
-    InteractionAction,
-    UploadFileAction,
-)
-
-ActionNode(
-    interaction_action=InteractionAction(
-        upload_file=UploadFileAction(
-            command="""get_by_label("Upload Document")""",
-            file_path="/path/to/document.pdf",
-            prompt_instructions="Upload the PDF document",
-        )
-    )
-)
+```json
+{
+  "interaction_action": {
+    "upload_file": {
+      "command": "get_by_label(\"Upload Document\")",
+      "file_path": "/path/to/document.pdf",
+      "prompt_instructions": "Upload the PDF document"
+    }
+  }
+}
 ```
 
 ### Properties
@@ -180,23 +155,21 @@ ActionNode(
 
 Use input parameters for dynamic file paths:
 
-```python
-parameters=Parameters(
-    input_parameters={
-        "document_path": ["/data/uploads/report.pdf"],
-    },
-    ...
-),
-
-ActionNode(
-    interaction_action=InteractionAction(
-        upload_file=UploadFileAction(
-            command="""locator("input[type='file']")""",
-            file_path="{document_path[0]}",
-            prompt_instructions="Upload the document",
-        )
-    )
-)
+```json
+{
+  "parameters": {
+    "input_parameters": {
+      "document_path": ["/data/uploads/report.pdf"]
+    }
+  },
+  "interaction_action": {
+    "upload_file": {
+      "command": "locator(\"input[type='file']\")",
+      "file_path": "{document_path[0]}",
+      "prompt_instructions": "Upload the document"
+    }
+  }
+}
 ```
 
 ## Download Storage
@@ -224,120 +197,112 @@ Downloads happen asynchronously. Optexity handles this automatically when `expec
 
 For large files, you may need to increase timing:
 
-```python
-ActionNode(
-    interaction_action=InteractionAction(
-        click_element=ClickElementAction(
-            command="""get_by_text("Download Large File")""",
-            prompt_instructions="Download the large file",
-            expect_download=True,
-            download_filename="large_file.zip",
-        )
-    ),
-    end_sleep_time=10.0,  # Extra time for large downloads
-)
+```json
+{
+  "interaction_action": {
+    "click_element": {
+      "command": "get_by_text(\"Download Large File\")",
+      "prompt_instructions": "Download the large file",
+      "expect_download": true,
+      "download_filename": "large_file.zip"
+    }
+  },
+  "end_sleep_time": 10.0
+}
 ```
 
 ## Common Patterns
 
 ### Export and Download Report
 
-```python
-# Navigate to reports
-ActionNode(
-    interaction_action=InteractionAction(
-        click_element=ClickElementAction(
-            command="""get_by_role("link", name="Reports")""",
-            prompt_instructions="Go to reports section",
-        )
-    )
-),
-
-# Select date range
-ActionNode(
-    interaction_action=InteractionAction(
-        select_option=SelectOptionAction(
-            command="""get_by_label("Date Range")""",
-            select_values=["Last 30 Days"],
-            prompt_instructions="Select date range",
-        )
-    )
-),
-
-# Export as CSV
-ActionNode(
-    interaction_action=InteractionAction(
-        click_element=ClickElementAction(
-            command="""get_by_role("button", name="Export CSV")""",
-            prompt_instructions="Export as CSV",
-            expect_download=True,
-            download_filename="report_last_30_days.csv",
-        )
-    )
-),
+```json
+[
+  {
+    "interaction_action": {
+      "click_element": {
+        "command": "get_by_role(\"link\", name=\"Reports\")",
+        "prompt_instructions": "Go to reports section"
+      }
+    }
+  },
+  {
+    "interaction_action": {
+      "select_option": {
+        "command": "get_by_label(\"Date Range\")",
+        "select_values": ["Last 30 Days"],
+        "prompt_instructions": "Select date range"
+      }
+    }
+  },
+  {
+    "interaction_action": {
+      "click_element": {
+        "command": "get_by_role(\"button\", name=\"Export CSV\")",
+        "prompt_instructions": "Export as CSV",
+        "expect_download": true,
+        "download_filename": "report_last_30_days.csv"
+      }
+    }
+  }
+]
 ```
 
 ### Download All Attachments
 
-```python
-# Get list of attachment names
-ActionNode(
-    extraction_action=ExtractionAction(
-        llm=LLMExtraction(
-            extraction_format={"attachment_names": "List[str]"},
-            output_variable_names=["attachment_names"],
-            extraction_instructions="List all attachment filenames",
-            source=["axtree"],
-        )
-    )
-),
-
-# Download each attachment
-ForLoopNode(
-    variable_name="attachment_names",
-    nodes=[
-        ActionNode(
-            interaction_action=InteractionAction(
-                click_element=ClickElementAction(
-                    command="""get_by_role("link", name="{attachment_names[index]}")""",
-                    prompt_instructions="Download {attachment_names[index]}",
-                    expect_download=True,
-                    download_filename="{attachment_names[index]}",
-                )
-            )
-        ),
-    ],
-),
+```json
+[
+  {
+    "extraction_action": {
+      "llm": {
+        "extraction_format": {
+          "attachment_names": "List[str]"
+        },
+        "output_variable_names": ["attachment_names"],
+        "extraction_instructions": "List all attachment filenames",
+        "source": ["axtree"]
+      }
+    }
+  },
+  {
+    "variable_name": "attachment_names",
+    "nodes": [
+      {
+        "interaction_action": {
+          "click_element": {
+            "command": "get_by_role(\"link\", name=\"{attachment_names[index]}\")",
+            "prompt_instructions": "Download {attachment_names[index]}",
+            "expect_download": true,
+            "download_filename": "{attachment_names[index]}"
+          }
+        }
+      }
+    ]
+  }
+]
 ```
 
 ### Screenshot as Alternative to Download
 
 If a page doesn't offer a download but you need the content:
 
-```python
-from optexity.schema.actions.extraction_action import (
-    ExtractionAction,
-    ScreenshotExtraction,
-)
-
-# Capture the page as a screenshot
-ActionNode(
-    extraction_action=ExtractionAction(
-        screenshot=ScreenshotExtraction(
-            filename="receipt.png",
-            full_page=True,
-        )
-    )
-)
-
-# Or save as PDF
-ActionNode(
-    interaction_action=InteractionAction(
-        download_url_as_pdf=DownloadUrlAsPdfAction(
-            download_filename="receipt.pdf"
-        )
-    )
-)
+```json
+[
+  {
+    "extraction_action": {
+      "screenshot": {
+        "filename": "receipt.png",
+        "full_page": true
+      }
+    }
+  },
+  {
+    "interaction_action": {
+      "download_url_as_pdf": {
+        "download_filename": "receipt.pdf"
+      }
+    }
+  }
+]
 ```
 
 ## Best Practices
