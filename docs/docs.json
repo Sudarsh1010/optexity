@@ -69,21 +69,12 @@
                 "groups": [
                     {
                         "group": "Schema Reference",
-                        "pages": [
-                            "/api-reference/automation-schema",
-                            "/api-reference/interaction-actions-ref",
-                            "/api-reference/extraction-actions-ref",
-                            "/api-reference/assertion-actions-ref",
-                            "/api-reference/misc-actions-ref",
-                            "/api-reference/callback",
-                            "/api-reference/schema-reference/secure-parameters"
-                        ]
+                        "pages": ["/api-reference/callback"]
                     },
                     {
                         "group": "HTTP API",
                         "openapi": "https://api.optexity.com/openapi.json",
                         "pages": [
-                            "/api-reference/cloud/inference-endpoint",
                             "POST /api/v1/inference",
                             "GET /api/v1/task_status",
                             "GET /api/v1/final_screenshot",

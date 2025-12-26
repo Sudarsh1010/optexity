@@ -61,27 +61,86 @@ Yes this is a work in progress and we will provide you with details shortly,
 
 ### How do I access downloaded files?
 
-You
+You can access downloaded files by using the `GET /api/v1/get_downloads` endpoint. You can learn more about how to use this endpoint in the [HTTP API](/api-reference/task_details/get-downloads) documentation.
 
 ### Where is my extracted data stored?
 
+It is stored in optexity cloud storage. You can access it by using the `GET /api/v1/get_output_data` endpoint. You can learn more about how to use this endpoint in the [HTTP API](/api-reference/task_details/get-output-data) documentation.
+
 ### Do I have to poll to get the data?
+
+No. You can setup a callback URL in the dashboard and we will send the callback data to the URL you specify. You can learn more about how to use callbacks in the [Callbacks](/docs/advanced/callbacks) documentation.
 
 ### Can you send a callback when the automation is done?
 
+Yes. You can setup a callback URL in the dashboard and we will send the callback data to the URL you specify. You can learn more about how to use callbacks in the [Callbacks](/docs/advanced/callbacks) documentation.
+
 ### Do you have a free tier?
+
+All automations are free to build and run using the opensource version of Optexity. You can checkout the [github repo](https://github.com/Optexity/optexity)
 
 ### Do you give browser in cloud?
 
+Yes. Please request cloud access by contacting us at founders@optexity.com
+
 ### Do you handle CAPTCHAs?
+
+Yes we provide stealth mode in both opensource and cloud version which prevents most of the CAPTCHAs
 
 ### How to skip command when the action is nondeterministic
 
+If you do not provide command, then we directly fallback to ai prompt for action.
+
 ### How to fill something in box and then select from the drop-down
+
+you should use two actions one after the another. first input somehting in text box. then wait for few seconds for dropdown to populate. then select the value using the prompt based click as generally you do not know the exact locator. if you know the exact locator, then you can use the command based click.
+
+```json
+[
+    {
+        "type": "action_node",
+        "interaction_action": {
+            "input_text": {
+                "command": "get_by_role(\"textbox\", name=\"Type search term here\")",
+                "prompt_instructions": "Fill the SOC code search field with the text '{soc_code_search_term[0]}'.",
+                "input_text": "{soc_code_search_term[0]}"
+            }
+        },
+        "end_sleep_time": 1
+    },
+    {
+        "type": "action_node",
+        "interaction_action": {
+            "click_element": {
+                "prompt_instructions": "Click on the dropdown option '{soc_code_search_term[0]}'."
+            }
+        },
+        "before_sleep_time": 2,
+        "end_sleep_time": 1
+    }
+]
+```
 
 ### How to select elements
 
+you should use the select_option action.
+
+```json
+{
+    "type": "action_node",
+    "interaction_action": {
+        "select_option": {
+            "command": "get_by_label(\"Country\")",
+            "select_values": ["United States"],
+            "prompt_instructions": "Select United States from the country dropdown"
+        }
+    }
+}
+```
+
 ### How is select elements different from clicking on the drop down?
+
+It is dependent on the website structure. if the element is select option then we use the select_option action. if it is a normal textbox which shows some options after we fill something then we use the input_text action and then click on the right option
 
 ### Automation is not working reliably as website does not load or downloads are not happening
 
