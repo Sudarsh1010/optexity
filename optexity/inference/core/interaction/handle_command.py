@@ -45,6 +45,7 @@ async def command_based_action_with_retry(
     for try_index in range(max_tries):
         last_error = None
         try:
+            # https://playwright.dev/docs/actionability
             locator = await browser.get_locator_from_command(action.command)
             if try_index == 0:
                 try:

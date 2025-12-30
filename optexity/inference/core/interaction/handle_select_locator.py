@@ -1,6 +1,9 @@
 import logging
 import re
 
+from optexity.inference.agents.select_value_prediction.select_value_prediction import (
+    SelectValuePredictionAgent,
+)
 from optexity.inference.core.interaction.utils import handle_download
 from optexity.inference.infra.browser import Browser
 from optexity.schema.actions.interaction_action import Locator, SelectOptionAction
@@ -8,6 +11,27 @@ from optexity.schema.memory import Memory
 from optexity.schema.task import Task
 
 logger = logging.getLogger(__name__)
+select_value_prediction_agent = SelectValuePredictionAgent()
+
+
+def llm_select_match(
+    values: list[str], patterns: list[str], memory: Memory
+) -> list[str]:
+    final_prompt, response, token_usage = (
+        select_value_prediction_agent.predict_select_value(values, patterns)
+    )
+    memory.token_usage += token_usage
+    memory.browser_states[-1].final_prompt = final_prompt
+    memory.browser_states[-1].llm_response = response.model_dump()
+
+    matched_values = response.matched_values
+
+    final_matched_values = []
+    for value in matched_values:
+        if value in values:
+            final_matched_values.append(value)
+
+    return final_matched_values
 
 
 def score_match(pat: str, val: str) -> int:
@@ -21,7 +45,7 @@ def score_match(pat: str, val: str) -> int:
     return 0
 
 
-async def smart_select(locator: Locator, patterns: list[str]):
+async def smart_select(locator: Locator, patterns: list[str], memory: Memory):
     # Get all options from the <select>
     options: list[dict[str, str]] = await locator.evaluate(
         """
@@ -74,6 +98,9 @@ async def smart_select(locator: Locator, patterns: list[str]):
                     matched_values.append(best_value)
 
     if len(matched_values) == 0:
+        matched_values = llm_select_match(options, patterns, memory)
+
+    if len(matched_values) == 0:
         matched_values = patterns
 
     return matched_values
@@ -88,7 +115,9 @@ async def select_option_locator(
     max_timeout_seconds_per_try: float,
 ):
     async def _actual_select_option():
-        matched_values = await smart_select(locator, select_option_action.select_values)
+        matched_values = await smart_select(
+            locator, select_option_action.select_values, memory
+        )
 
         logger.debug(
             f"Matched values for {select_option_action.command}: {matched_values}"

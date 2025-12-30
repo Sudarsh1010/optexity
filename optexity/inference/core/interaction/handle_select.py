@@ -47,7 +47,7 @@ async def select_option_index(
     memory: Memory,
     task: Task,
 ):
-
+    ## TODO either perfect text match or agenic select value prediction
     try:
         index = await get_index_from_prompt(
             memory, select_option_action.prompt_instructions, browser
