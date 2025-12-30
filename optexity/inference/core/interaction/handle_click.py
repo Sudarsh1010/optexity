@@ -24,7 +24,7 @@ async def handle_click_element(
     max_tries: int,
 ):
 
-    if click_element_action.command:
+    if click_element_action.command and not click_element_action.skip_command:
         last_error = await command_based_action_with_retry(
             click_element_action,
             browser,

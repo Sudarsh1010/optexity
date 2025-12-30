@@ -37,7 +37,7 @@ async def command_based_action_with_retry(
     max_timeout_seconds_per_try: float,
 ):
 
-    if action.command is None:
+    if action.command is None or action.skip_command:
         return
 
     last_error = None

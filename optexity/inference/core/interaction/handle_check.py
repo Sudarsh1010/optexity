@@ -20,7 +20,7 @@ async def handle_check_element(
     max_tries: int,
 ):
 
-    if check_element_action.command:
+    if check_element_action.command and not check_element_action.skip_command:
         last_error = await command_based_action_with_retry(
             check_element_action,
             browser,

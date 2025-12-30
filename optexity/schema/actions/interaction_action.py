@@ -23,6 +23,7 @@ class BaseAction(BaseModel):
     xpath: str | None = None
     command: str | None = None
     prompt_instructions: str
+    skip_command: bool = False
     skip_prompt: bool = False
     assert_locator_presence: bool = False
 

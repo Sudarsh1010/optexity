@@ -24,7 +24,7 @@ async def handle_select_option(
     max_tries: int,
 ):
 
-    if select_option_action.command:
+    if select_option_action.command and not select_option_action.skip_command:
         last_error = await command_based_action_with_retry(
             select_option_action,
             browser,
