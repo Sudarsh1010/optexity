@@ -73,6 +73,7 @@ class ActionNode(BaseModel):
     end_sleep_time: float = 5.0
     expect_new_tab: bool = False
     max_new_tab_wait_time: float = 0.0
+    localized_axtree_string: str | None = None
 
     @model_validator(mode="after")
     def validate_one_node(cls, model: "ActionNode"):
