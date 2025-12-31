@@ -178,10 +178,10 @@ async def input_text_locator(
 
 
 async def check_locator(
+    action: CheckAction,
     locator: Locator,
     max_timeout_seconds_per_try: float,
     browser: Browser,
-    action: CheckAction,
 ):
     await locator.uncheck(
         no_wait_after=True, timeout=max_timeout_seconds_per_try * 1000
@@ -192,10 +192,10 @@ async def check_locator(
 
 
 async def uncheck_locator(
+    action: UncheckAction,
     locator: Locator,
     max_timeout_seconds_per_try: float,
     browser: Browser,
-    action: UncheckAction,
 ):
     await locator.check(no_wait_after=True, timeout=max_timeout_seconds_per_try * 1000)
     await asyncio.sleep(1)
