@@ -4,8 +4,9 @@ import logging
 from playwright.async_api import Locator
 
 from optexity.exceptions import AssertLocatorPresenceException
-from optexity.inference.core.interaction.handle_select_locator import (
-    select_option_locator,
+from optexity.inference.core.interaction.handle_select_utils import (
+    SelectOptionValue,
+    smart_select,
 )
 from optexity.inference.core.interaction.utils import handle_download
 from optexity.inference.infra.browser import Browser
@@ -14,6 +15,7 @@ from optexity.schema.actions.interaction_action import (
     ClickElementAction,
     InputTextAction,
     SelectOptionAction,
+    UncheckAction,
     UploadFileAction,
 )
 from optexity.schema.memory import BrowserState, Memory
@@ -29,6 +31,7 @@ async def command_based_action_with_retry(
         | SelectOptionAction
         | CheckAction
         | UploadFileAction
+        | UncheckAction
     ),
     browser: Browser,
     memory: Memory,
@@ -37,10 +40,12 @@ async def command_based_action_with_retry(
     max_timeout_seconds_per_try: float,
 ):
 
-    if action.command is None:
+    if action.command is None or action.skip_command:
         return
 
     last_error = None
+
+    logger.debug(f"Executing command-based action: {action.__class__.__name__}")
 
     for try_index in range(max_tries):
         last_error = None
@@ -89,7 +94,11 @@ async def command_based_action_with_retry(
                     )
                 elif isinstance(action, CheckAction):
                     await check_locator(
-                        locator, max_timeout_seconds_per_try, browser, action
+                        action, locator, max_timeout_seconds_per_try, browser
+                    )
+                elif isinstance(action, UncheckAction):
+                    await uncheck_locator(
+                        action, locator, max_timeout_seconds_per_try, browser
                     )
                 elif isinstance(action, UploadFileAction):
                     await upload_file_locator(action, locator)
@@ -172,10 +181,10 @@ async def input_text_locator(
 
 
 async def check_locator(
+    action: CheckAction,
     locator: Locator,
     max_timeout_seconds_per_try: float,
     browser: Browser,
-    action: CheckAction,
 ):
     await locator.uncheck(
         no_wait_after=True, timeout=max_timeout_seconds_per_try * 1000
@@ -185,5 +194,67 @@ async def check_locator(
     await locator.check(no_wait_after=True, timeout=max_timeout_seconds_per_try * 1000)
 
 
+async def uncheck_locator(
+    action: UncheckAction,
+    locator: Locator,
+    max_timeout_seconds_per_try: float,
+    browser: Browser,
+):
+    await locator.check(no_wait_after=True, timeout=max_timeout_seconds_per_try * 1000)
+    await asyncio.sleep(1)
+    locator = await browser.get_locator_from_command(action.command)
+    await locator.uncheck(
+        no_wait_after=True, timeout=max_timeout_seconds_per_try * 1000
+    )
+
+
 async def upload_file_locator(upload_file_action: UploadFileAction, locator: Locator):
     await locator.set_input_files(upload_file_action.file_path)
+
+
+async def select_option_locator(
+    select_option_action: SelectOptionAction,
+    locator: Locator,
+    browser: Browser,
+    memory: Memory,
+    task: Task,
+    max_timeout_seconds_per_try: float,
+):
+    async def _actual_select_option():
+        options: list[dict[str, str]] = await locator.evaluate(
+            """
+        sel => Array.from(sel.options).map(o => ({
+            value: o.value,
+            label: o.label || o.textContent
+        }))
+    """
+        )
+
+        select_option_values = [
+            SelectOptionValue(value=o["value"], label=o["label"]) for o in options
+        ]
+
+        matched_values = await smart_select(
+            select_option_values, options, select_option_action.select_values, memory
+        )
+
+        logger.debug(
+            f"Matched values for {select_option_action.command}: {matched_values}"
+        )
+
+        await locator.select_option(
+            matched_values,
+            no_wait_after=True,
+            timeout=max_timeout_seconds_per_try * 1000,
+        )
+
+    if select_option_action.expect_download:
+        await handle_download(
+            _actual_select_option,
+            memory,
+            browser,
+            task,
+            select_option_action.download_filename,
+        )
+    else:
+        await _actual_select_option()

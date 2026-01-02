@@ -1,5 +1,5 @@
+import json
 import logging
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -19,12 +19,12 @@ class SelectValuePredictionAgent:
         self.model = get_llm_model(GeminiModels.GEMINI_2_5_FLASH, True)
 
     def predict_select_value(
-        self, values: list[str], patterns: list[str]
+        self, options: list[dict[str, str]], patterns: list[str]
     ) -> tuple[str, SelectValuePredictionOutput, TokenUsage]:
 
         final_prompt = f"""
-        [Actual Select Values]
-        [{', '.join(values)}]
+        [Actual Select Options]
+        {json.dumps(options, indent=4)}
 
         [User Provided Patterns]
         [{', '.join(patterns)}]

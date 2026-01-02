@@ -23,6 +23,7 @@ class BaseAction(BaseModel):
     xpath: str | None = None
     command: str | None = None
     prompt_instructions: str
+    skip_command: bool = False
     skip_prompt: bool = False
     assert_locator_presence: bool = False
 
@@ -61,6 +62,10 @@ class BaseAction(BaseModel):
 
 
 class CheckAction(BaseAction):
+    pass
+
+
+class UncheckAction(BaseAction):
     pass
 
 
@@ -247,6 +252,7 @@ class InteractionAction(BaseModel):
     input_text: InputTextAction | None = None
     select_option: SelectOptionAction | None = None
     check: CheckAction | None = None
+    uncheck: UncheckAction | None = None
     download_url_as_pdf: DownloadUrlAsPdfAction | None = None
     scroll: ScrollAction | None = None
     upload_file: UploadFileAction | None = None
@@ -268,6 +274,7 @@ class InteractionAction(BaseModel):
             "input_text": model.input_text,
             "select_option": model.select_option,
             "check": model.check,
+            "uncheck": model.uncheck,
             "download_url_as_pdf": model.download_url_as_pdf,
             "scroll": model.scroll,
             "upload_file": model.upload_file,
@@ -285,7 +292,7 @@ class InteractionAction(BaseModel):
 
         if len(non_null) != 1:
             raise ValueError(
-                "Exactly one of click_element, input_text, select_option, check, download_url_as_pdf, scroll, upload_file, go_to_url, go_back, switch_tab, close_current_tab, close_all_but_last_tab, close_tabs_until, key_press, or agentic_task must be provided"
+                "Exactly one of click_element, input_text, select_option, check, uncheck, download_url_as_pdf, scroll, upload_file, go_to_url, go_back, switch_tab, close_current_tab, close_all_but_last_tab, close_tabs_until, key_press, or agentic_task must be provided"
             )
 
         if model.start_2fa_timer:
@@ -311,6 +318,8 @@ class InteractionAction(BaseModel):
             self.select_option.replace(pattern, replacement)
         if self.check:
             self.check.replace(pattern, replacement)
+        if self.uncheck:
+            self.uncheck.replace(pattern, replacement)
         if self.download_url_as_pdf:
             self.download_url_as_pdf.replace(pattern, replacement)
         if self.close_tabs_until:

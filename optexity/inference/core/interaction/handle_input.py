@@ -31,7 +31,7 @@ async def handle_input_text(
         )
         return
 
-    if input_text_action.command:
+    if input_text_action.command and not input_text_action.skip_command:
         last_error = await command_based_action_with_retry(
             input_text_action,
             browser,
@@ -45,6 +45,9 @@ async def handle_input_text(
             return
 
     if not input_text_action.skip_prompt:
+        logger.debug(
+            f"Executing prompt-based action: {input_text_action.__class__.__name__}"
+        )
         await input_text_index(input_text_action, browser, memory)
 
 
