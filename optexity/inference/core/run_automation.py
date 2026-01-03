@@ -273,9 +273,7 @@ async def run_action_node(
                 action_node.extraction_action, memory, browser, task
             )
         elif action_node.two_factor_auth_action:
-            await run_two_factor_auth_action(
-                action_node.two_factor_auth_action, memory, browser
-            )
+            await run_two_factor_auth_action(action_node.two_factor_auth_action, memory)
         elif action_node.python_script_action:
             await run_python_script_action(
                 action_node.python_script_action, memory, browser

@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 async def run_two_factor_auth_action(
-    two_factor_auth_action: TwoFactorAuthAction, memory: Memory, browser: Browser
+    two_factor_auth_action: TwoFactorAuthAction, memory: Memory
 ):
     logger.debug(
         f"---------Running 2fa action {two_factor_auth_action.model_dump_json()}---------"
@@ -29,11 +29,11 @@ async def run_two_factor_auth_action(
 
     if isinstance(two_factor_auth_action.action, EmailTwoFactorAuthAction):
         code = await handle_email_two_factor_auth(
-            two_factor_auth_action.action, memory, browser
+            two_factor_auth_action.action, memory, two_factor_auth_action.max_wait_time
         )
     elif isinstance(two_factor_auth_action.action, SlackTwoFactorAuthAction):
         code = await handle_slack_two_factor_auth(
-            two_factor_auth_action.action, memory, browser
+            two_factor_auth_action.action, memory, two_factor_auth_action.max_wait_time
         )
 
     memory.automation_state.start_2fa_time = None
@@ -50,8 +50,9 @@ async def run_two_factor_auth_action(
 async def handle_email_two_factor_auth(
     email_two_factor_auth_action: EmailTwoFactorAuthAction,
     memory: Memory,
-    browser: Browser,
+    max_wait_time: float,
 ):
+
     async with httpx.AsyncClient() as client:
         url = urljoin(settings.SERVER_URL, settings.FETCH_OTP_FROM_EMAIL_ENDPOINT)
 
@@ -60,16 +61,11 @@ async def handle_email_two_factor_auth(
             email_address=email_two_factor_auth_action.email_address,
             start_2fa_time=memory.automation_state.start_2fa_time,
             end_2fa_time=memory.automation_state.start_2fa_time
-            + timedelta(seconds=email_two_factor_auth_action.max_wait_time),
-            email_provider=email_two_factor_auth_action.email_provider,
+            + timedelta(seconds=max_wait_time),
         )
         response = await client.post(url, json=body.model_dump())
         response.raise_for_status()
         response_data = FetchOTPFromEmailResponse.model_validate_json(response.json())
-
-        logger.debug(f"OTP: {response_data.otp}")
-        logger.debug(f"Message ID: {response_data.message_id}")
-        logger.debug(f"Message Text: {response_data.message_text}")
 
         return response_data.otp
 
@@ -77,6 +73,6 @@ async def handle_email_two_factor_auth(
 async def handle_slack_two_factor_auth(
     slack_two_factor_auth_action: SlackTwoFactorAuthAction,
     memory: Memory,
-    browser: Browser,
+    max_wait_time: float,
 ):
     raise NotImplementedError("Slack 2FA is not implemented")

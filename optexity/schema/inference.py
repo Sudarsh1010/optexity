@@ -31,7 +31,6 @@ class FetchOTPFromEmailRequest(BaseModel):
     email_address: str
     start_2fa_time: datetime
     end_2fa_time: datetime
-    email_provider: Literal["gmail", "outlook"]
 
     @model_validator(mode="after")
     def validate_time_parameters(self):
