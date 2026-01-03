@@ -27,8 +27,8 @@ class InferenceRequest(BaseModel):
 
 
 class FetchOTPFromEmailRequest(BaseModel):
-    integration_id: str
-    email_address: str
+    receiver_email_address: str  # receiver's email address
+    sender_email_address: str  # sender's email address
     start_2fa_time: datetime
     end_2fa_time: datetime
 
@@ -46,7 +46,28 @@ class FetchOTPFromEmailRequest(BaseModel):
         return self
 
 
-class FetchOTPFromEmailResponse(BaseModel):
+class FetchOTPFromSlackRequest(BaseModel):
+    slack_workspace_domain: str
+    channel_name: str
+    sender_name: str
+    start_2fa_time: datetime
+    end_2fa_time: datetime
+
+    @model_validator(mode="after")
+    def validate_time_parameters(self):
+        assert (
+            self.start_2fa_time.tzinfo is not None
+        ), "start_2fa_time must be timezone-aware"
+        assert (
+            self.end_2fa_time.tzinfo is not None
+        ), "end_2fa_time must be timezone-aware"
+        assert (
+            self.start_2fa_time < self.end_2fa_time
+        ), "start_2fa_time must be before end_2fa_time"
+        return self
+
+
+class FetchOTPResponse(BaseModel):
     message_id: str
     message_text: str
     otp: str
