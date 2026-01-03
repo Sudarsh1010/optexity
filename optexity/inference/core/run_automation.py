@@ -25,7 +25,7 @@ from optexity.inference.core.run_interaction import (
     run_interaction_action,
 )
 from optexity.inference.core.run_python_script import run_python_script_action
-from optexity.inference.core.run_two_factor_auth import run_two_factor_auth_action
+from optexity.inference.core.run_two_fa import run_two_fa_action
 from optexity.inference.infra.browser import Browser
 from optexity.schema.actions.interaction_action import DownloadUrlAsPdfAction
 from optexity.schema.automation import ActionNode, ForLoopNode, IfElseNode
@@ -272,8 +272,8 @@ async def run_action_node(
             await run_extraction_action(
                 action_node.extraction_action, memory, browser, task
             )
-        elif action_node.two_factor_auth_action:
-            await run_two_factor_auth_action(action_node.two_factor_auth_action, memory)
+        elif action_node.two_fa_action:
+            await run_two_fa_action(action_node.two_fa_action, memory)
         elif action_node.python_script_action:
             await run_python_script_action(
                 action_node.python_script_action, memory, browser

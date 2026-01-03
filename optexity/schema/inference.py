@@ -26,7 +26,7 @@ class InferenceRequest(BaseModel):
         return self
 
 
-class FetchOTPFromEmailRequest(BaseModel):
+class FetchEmailTwoFARequest(BaseModel):
     receiver_email_address: str  # receiver's email address
     sender_email_address: str  # sender's email address
     start_2fa_time: datetime
@@ -46,7 +46,7 @@ class FetchOTPFromEmailRequest(BaseModel):
         return self
 
 
-class FetchOTPFromSlackRequest(BaseModel):
+class FetchSlackTwoFARequest(BaseModel):
     slack_workspace_domain: str
     channel_name: str
     sender_name: str
@@ -67,7 +67,7 @@ class FetchOTPFromSlackRequest(BaseModel):
         return self
 
 
-class FetchOTPResponse(BaseModel):
+class FetchTwoFAResponse(BaseModel):
     message_id: str
     message_text: str
     otp: str
