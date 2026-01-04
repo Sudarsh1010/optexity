@@ -25,17 +25,18 @@ class TwoFAExtraction:
         self, instructions: str | None, messages: list[Message]
     ) -> tuple[str, TwoFAExtractionOutput, TokenUsage]:
 
-        final_prompt = f"""
-        [INPUT]
-        [EXTRACTION INSTRUCTIONS]
-        {instructions}
-        [/EXTRACTION INSTRUCTIONS]
+        final_prompt = ""
 
+        if instructions is not None:
+            final_prompt += f"""
+            [EXTRACTION INSTRUCTIONS]
+            {instructions}
+            [/EXTRACTION INSTRUCTIONS]
+            """
+        final_prompt += f"""
         [MESSAGES] 
         {json.dumps([message.model_dump(include={"message_text"}) for message in messages], indent=2)} 
         [/MESSAGES]
-
-        [/INPUT]
         """
 
         response, token_usage = self.model.get_model_response_with_structured_output(

@@ -4,13 +4,13 @@ from pydantic import BaseModel
 
 
 class EmailTwoFAAction(BaseModel):
-    type: Literal["email_two_fa_action"] = "email_two_fa_action"
+    type: Literal["email_two_fa_action"]
     receiver_email_address: str
     sender_email_address: str
 
 
 class SlackTwoFAAction(BaseModel):
-    type: Literal["slack_two_fa_action"] = "slack_two_fa_action"
+    type: Literal["slack_two_fa_action"]
     slack_workspace_domain: str
     channel_name: str
     sender_name: str
