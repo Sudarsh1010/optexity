@@ -86,7 +86,10 @@ async def register_with_master():
     logger.info(f"Registered with master: {response.json()}")
 
 
-def get_app_with_endpoints(is_aws: bool):
+def get_app_with_endpoints(is_aws: bool, child_id: int):
+    global child_process_id
+    child_process_id = child_id
+
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         """Lifespan context manager for startup and shutdown."""
@@ -237,10 +240,7 @@ def main():
 
     args = parser.parse_args()
 
-    app = get_app_with_endpoints(args.is_aws)
-
-    global child_process_id
-    child_process_id = args.child_process_id
+    app = get_app_with_endpoints(is_aws=args.is_aws, child_id=args.child_process_id)
 
     # Start the server (this is blocking and manages its own event loop)
     logger.info(f"Starting server on {args.host}:{args.port}")
