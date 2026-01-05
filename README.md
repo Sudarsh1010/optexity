@@ -150,7 +150,7 @@ With the server running on `http://localhost:9000`, you can allocate a task by s
 curl -X POST http://localhost:9000/inference \
   -H "Content-Type: application/json" \
   -d '{
-    "endpoint_name": "extract_stock_price",
+    "endpoint_name": "extract_price_stockanalysis",
     "input_parameters": {
       "search_term": ["NVDA"]
     },
