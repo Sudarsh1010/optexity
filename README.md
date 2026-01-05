@@ -25,30 +25,19 @@ Once logged in, navigate to the **API Keys** section in your dashboard and creat
 
 Install the **Optexity Recorder** extension from the [Chrome Web Store](https://chromewebstore.google.com/detail/optexity-recorder/pbaganbicadeoacahamnbgohafchgakp). This extension captures your browser interactions and converts them into automation workflows.
 
-## Installation
-
 ### Prerequisites
 
 - Python 3.11+
-- Node.js 18+ (included with Conda option)
 - Git
 
-### Step 1: Clone the Repository
-
-```bash
-git clone git@github.com:Optexity/optexity.git
-cd optexity
-./update_submodule.sh
-```
-
-### Step 2: Create and Activate a Python Environment
+## Create and Activate a Python Environment (Optional)
 
 Choose **one** of the options below.
 
 #### Option A – Conda (includes Python 3.11 and Node.js)
 
 ```bash
-conda create -n optexity python=3.11 nodejs
+conda create -n optexity python=3.11
 conda activate optexity
 ```
 
@@ -61,32 +50,29 @@ python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-> If you pick `venv`, ensure Node.js 18+ is already available on your machine before continuing.
+## Installation
 
-### Step 3: Install Dependencies
+### Quick Installation (from PyPI)
 
-Run everything from the repository root:
+Install Optexity directly from PyPI:
 
 ```bash
-pip install -e "external/browser-use"
+pip install optexity
+```
+
+**OR**
+
+### Installation from Source
+
+If you want to clone and edit from source:
+
+```bash
+git clone git@github.com:Optexity/optexity.git
+cd optexity
 pip install -e .
-playwright install --with-deps chromium chrome
-patchright install chromium chrome
-pre-commit install --install-hooks
-pre-commit install --hook-type pre-push
 ```
 
-### Step 4: Configure Your Environment
-
-Optexity reads configuration from a standard `.env` file via the `ENV_PATH` environment variable.
-
-Create a `.env` file in the repo root:
-
-```bash
-touch .env
-```
-
-Add the required values:
+## Set required environment variables:
 
 ```bash
 API_KEY=YOUR_OPTEXITY_API_KEY           # API key used for authenticated requests
@@ -96,13 +82,13 @@ DEPLOYMENT=dev                          # or "prod" in production
 
 You can get your free Google Gemini API key from the [Google AI Studio Console](https://aistudio.google.com).
 
-Then export `ENV_PATH` when running processes that rely on these settings:
+## Install required browsers:
+
+Install playwright and patchright browsers:
 
 ```bash
-export ENV_PATH=.env
+optexity install-browsers
 ```
-
-> If `ENV_PATH` is not set, the inference server will try to start with defaults and log a warning. For normal usage you should always point `ENV_PATH` at a real `.env` file.
 
 ## Recording Your First Automation
 
@@ -131,12 +117,10 @@ The fastest way to create an automation is by recording your actions directly in
 
 ### Start the Inference Server
 
-The primary way to run browser automations locally is via the inference child process server.
-
-From the repository root:
+The primary way to run browser automations locally is via the inference server.
 
 ```bash
-ENV_PATH=.env python optexity/inference/child_process.py --port 9000 --child_process_id 0
+optexity inference --port 9000 --child_process_id 0
 ```
 
 Key parameters:

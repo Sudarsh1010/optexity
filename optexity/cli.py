@@ -64,7 +64,7 @@ def main() -> None:
         "inference", help="Run Optexity inference server"
     )
     inference_cmd.add_argument("--host", default="0.0.0.0")
-    inference_cmd.add_argument("--port", type=int, required=True)
+    inference_cmd.add_argument("--port", type=int, default=9000)
     inference_cmd.add_argument(
         "--child_process_id", "--child-process-id", type=int, default=0
     )
