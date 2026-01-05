@@ -163,6 +163,8 @@ async def handle_llm_extraction(
     memory.token_usage += token_usage
     memory.variables.output_data.append(output_data)
 
+    memory.browser_states[-1].final_prompt = f"{system_instruction}\n{prompt}"
+
     if llm_extraction.output_variable_names is not None:
         for output_variable_name in llm_extraction.output_variable_names:
             v = response_dict[output_variable_name]
