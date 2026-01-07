@@ -58,6 +58,7 @@ Install Optexity directly from PyPI:
 
 ```bash
 pip install optexity
+optexity install-browsers
 ```
 
 **OR**
@@ -70,6 +71,7 @@ If you want to clone and edit from source:
 git clone git@github.com:Optexity/optexity.git
 cd optexity
 pip install -e .
+optexity install-browsers
 ```
 
 ## Set required environment variables:
@@ -81,14 +83,6 @@ DEPLOYMENT=dev                          # or "prod" in production
 ```
 
 You can get your free Google Gemini API key from the [Google AI Studio Console](https://aistudio.google.com).
-
-## Install required browsers:
-
-Install playwright and patchright browsers:
-
-```bash
-optexity install-browsers
-```
 
 ## Recording Your First Automation
 

@@ -4,66 +4,68 @@ title: Local Setup
 
 Follow these steps to set up your Optexity account, grab your API key, and install the toolchain locally.
 
-## 1. Create an account
+### 1. Create an Account
 
 Head to [dashboard.optexity.com](https://dashboard.optexity.com) and sign up for a free account.
 
-## 2. Get your API key
+### 2. Get Your API Key
 
 Once logged in, navigate to the **API Keys** section in your dashboard and create a new key.
 
-![Get API key from dashboard](/images/gen_api_key.png)
+### 3. Install the Recorder Extension
 
-Copy the key and store it securely, you'll need it to authenticate your automation runs. Once you have your API key, you can add it to your `.env` file.
+Install the **Optexity Recorder** extension from the [Chrome Web Store](https://chromewebstore.google.com/detail/optexity-recorder/pbaganbicadeoacahamnbgohafchgakp). This extension captures your browser interactions and converts them into automation workflows.
 
-## 3. Clone the repositories
+### Prerequisites
 
-```bash
-git clone git@github.com:Optexity/optexity.git
-cd optexity
-git submodule sync
-git submodule update --init --recursive
-```
+- Python 3.11+
+- Git
 
-## 4. Create and activate a Python environment
+## Create and Activate a Python Environment (Optional)
 
 Choose **one** of the options below.
 
-### Option A – Conda (includes Python 3.11 and Node.js)
+#### Option A – Conda (includes Python 3.11 and Node.js)
 
 ```bash
-conda create -n optexity python=3.11 nodejs
+conda create -n optexity python=3.11
 conda activate optexity
 ```
 
-### Option B – Python `venv`
+Install miniconda here: https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html#installing-in-silent-mode
+
+#### Option B – Python `venv`
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-> If you pick `venv`, ensure Node.js 18+ is already available on your machine before continuing.
+## Installation
 
-## 5. Install dependencies
+### Quick Installation (from PyPI)
+
+Install Optexity directly from PyPI:
 
 ```bash
-pip install -e "external/browser-use"
+pip install optexity
+optexity install-browsers
+```
+
+**OR**
+
+### Installation from Source
+
+If you want to clone and edit from source:
+
+```bash
+git clone git@github.com:Optexity/optexity.git
+cd optexity
 pip install -e .
-playwright install
+optexity install-browsers
 ```
 
-## 6. Configure your environment
-
-Optexity reads configuration from a standard `.env` file via the `ENV_PATH` environment variable.
-
-Create a `.env` file in the repo root:
-
-```bash
-touch .env
-```
-
-Add the required values:
+## Set required environment variables:
 
 ```bash
 API_KEY=YOUR_OPTEXITY_API_KEY           # API key used for authenticated requests
@@ -72,13 +74,3 @@ DEPLOYMENT=dev                          # or "prod" in production
 ```
 
 You can get your free Google Gemini API key from the [Google AI Studio Console](https://aistudio.google.com).
-
-Then export `ENV_PATH` when running processes that rely on these settings:
-
-```bash
-export ENV_PATH=.env
-```
-
-> If `ENV_PATH` is not set, the inference server will try to start with defaults and log a warning. For normal usage you should always point `ENV_PATH` at a real `.env` file.
-
-Once these commands finish, the Optexity is ready for local development or agent experimentation.
