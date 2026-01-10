@@ -13,6 +13,7 @@ Extraction actions capture data from web pages during automation—essential for
 | `network_call` | Capture API/AJAX responses | API data, JSON responses |
 | `screenshot` | Save visual snapshot | Receipts, proofs, visual records |
 | `state` | Capture page URL and title | Navigation validation |
+| `two_fa_action` | Wait for and extract 2FA code | 2FA codes |
 
 ---
 
@@ -175,6 +176,41 @@ Capture current page URL and title:
   }
 }
 ```
+
+## Two-Factor Authentication Extraction
+
+Wait for and extract 2FA code:
+
+```json
+{
+  "extraction_action": {
+    "two_fa_action": {
+      "action": "email_two_fa_action",
+      "output_variable_name": "two_fa_code"
+    }
+  }
+}
+```
+
+### Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `action` | `"email_two_fa_action" \| "slack_two_fa_action"` | Required | The type of 2FA action to use |
+| `output_variable_name` | `str` | Required | The name of the variable to store the 2FA code in |
+| `instructions` | `str` | `None` | Optional Custom instructions for code extraction |
+| `max_wait_time` | `float` | `300.0` | The maximum time to wait for the 2FA code |
+| `check_interval` | `float` | `10.0` | The interval to check for the 2FA code |
+
+### Action Types
+
+| Action Type | Description |
+|-------------|-------------|
+| `email_two_fa_action` | Wait for and extract 2FA code from email |
+| `slack_two_fa_action` | Wait for and extract 2FA code from Slack |
+
+
+For more information on how to use the 2FA code in your automation, please refer to the [Two-Factor Authentication Integration](/docs/advanced/two-fa-integration) documentation.
 
 ---
 

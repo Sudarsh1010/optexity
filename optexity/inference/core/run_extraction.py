@@ -4,6 +4,7 @@ import traceback
 import aiofiles
 import httpx
 
+from optexity.inference.core.run_two_fa import run_two_fa_action
 from optexity.inference.infra.browser import Browser
 from optexity.inference.models import GeminiModels, get_llm_model
 from optexity.schema.actions.extraction_action import (
@@ -65,6 +66,8 @@ async def run_extraction_action(
             browser,
             extraction_action.unique_identifier,
         )
+    elif extraction_action.two_fa_action:
+        await run_two_fa_action(extraction_action.two_fa_action, memory)
 
 
 async def handle_state_extraction(

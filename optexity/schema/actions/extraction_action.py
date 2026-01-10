@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from optexity.schema.actions.two_fa_action import TwoFAAction
 from optexity.utils.utils import build_model
 
 
@@ -109,6 +110,7 @@ class ExtractionAction(BaseModel):
     python_script: Optional[PythonScriptExtraction] = None
     screenshot: Optional[ScreenshotExtraction] = None
     state: Optional[StateExtraction] = None
+    two_fa_action: TwoFAAction | None = None
 
     @model_validator(mode="after")
     def validate_one_extraction(cls, model: "ExtractionAction"):
@@ -119,12 +121,13 @@ class ExtractionAction(BaseModel):
             "python_script": model.python_script,
             "screenshot": model.screenshot,
             "state": model.state,
+            "two_fa_action": model.two_fa_action,
         }
         non_null = [k for k, v in provided.items() if v is not None]
 
         if len(non_null) != 1:
             raise ValueError(
-                "Exactly one of llm, networkcall, python_script, or screenshot must be provided"
+                "Exactly one of llm, networkcall, python_script, screenshot, state, or two_fa_action must be provided"
             )
 
         return model

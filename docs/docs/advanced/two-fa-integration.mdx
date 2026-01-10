@@ -1,0 +1,127 @@
+---
+title: Two-Factor Authentication Integration
+description: Fetch 2FA codes from Gmail and Slack for automations
+---
+
+Automatically fetch 2FA verification codes from email or Slack messages—no manual code entry required.
+
+<Info>
+For TOTP codes from authenticator apps, see [TOTP Integration](/docs/advanced/totp-integration).
+</Info>
+
+## Methods
+
+| Method    | Source          | Use Case             |
+| --------- | --------------- | -------------------- |
+| **Email** | Gmail inbox     | Codes sent via email |
+| **Slack** | Slack workspace | Codes sent via Slack |
+
+Both methods follow the same pattern:
+
+1. Fetch messages from the source (email inbox or Slack channel)
+2. Extract the 2FA code from matching messages
+3. Store the code in the specified `output_variable_name`
+4. Use `{output_variable_name}` in subsequent actions to input the code
+
+---
+
+## Setup
+
+1. Go to the [Optexity dashboard](https://app.optexity.com) → **Integrations**
+2. Click the desired integration → **Connect**
+3. Follow the prompts to grant access
+
+---
+
+## Email 2FA
+
+Fetch verification codes from email messages:
+
+```json
+{
+  "type": "action_node",
+  "extraction_action": {
+    "two_fa_action": {
+      "action": {
+        "type": "email_two_fa_action",
+        "receiver_email_address": "user@example.com",
+        "sender_email_address": "noreply@example.com"
+      },
+      "output_variable_name": "auth_code"
+    }
+  }
+}
+```
+
+### Properties
+
+| Property                 | Type  | Required | Description                                  |
+| ------------------------ | ----- | -------- | -------------------------------------------- |
+| `receiver_email_address` | `str` | Yes      | Your email address (identifies integration)  |
+| `sender_email_address`   | `str` | Yes      | Sender to filter (e.g., `noreply@site.com`) |
+
+---
+
+## Slack 2FA
+
+Fetch verification codes from Slack messages:
+
+```json
+{
+  "type": "action_node",
+  "extraction_action": {
+    "two_fa_action": {
+      "action": {
+        "type": "slack_two_fa_action",
+        "slack_workspace_domain": "mycompany.slack.com",
+        "channel_name": "security-codes",
+        "sender_name": "Security Bot"
+      },
+      "output_variable_name": "auth_code"
+    }
+  }
+}
+```
+
+### Properties
+
+| Property                 | Type  | Required | Description                                     |
+| ------------------------ | ----- | -------- | ----------------------------------------------- |
+| `slack_workspace_domain` | `str` | Yes      | Workspace domain (identifies integration)       |
+| `channel_name`           | `str` | Yes      | Channel containing the 2FA messages             |
+| `sender_name`            | `str` | Yes      | Name of the bot/user sending the codes          |
+
+---
+
+## Common Properties
+
+These apply to both Email and Slack 2FA:
+
+| Property               | Type    | Default | Description                              |
+| ---------------------- | ------- | ------- | ---------------------------------------- |
+| `output_variable_name` | `str`   | —       | Variable name to store the extracted code |
+| `instructions`         | `str`   | `None`  | Optional custom instructions for code extraction  |
+| `max_wait_time`        | `float` | `300.0` | Maximum wait time in seconds             |
+| `check_interval`       | `float` | `10.0`  | Polling interval in seconds              |
+
+<Tip>
+The action polls for the 2FA code every `check_interval` seconds until the code arrives or `max_wait_time` is reached.
+</Tip>
+
+---
+
+## Using the Code
+
+Reference the extracted code in subsequent actions:
+
+```json
+{
+  "type": "action_node",
+  "interaction_action": {
+    "input_text": {
+      "command": "get_by_label(\"Verification Code\")",
+      "input_text": "{auth_code}"
+    }
+  }
+}
+```
