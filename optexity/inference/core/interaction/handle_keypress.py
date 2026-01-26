@@ -14,3 +14,29 @@ async def handle_key_press(
 
     if keypress_action.type == KeyPressType.ENTER:
         await page.keyboard.press("Enter")
+    if keypress_action.type == KeyPressType.TAB:
+        await page.keyboard.press("Tab")
+    if keypress_action.type == KeyPressType.ZERO:
+        await page.keyboard.press("0")
+    if keypress_action.type == KeyPressType.ONE:
+        await page.keyboard.press("1")
+    if keypress_action.type == KeyPressType.TWO:
+        await page.keyboard.press("2")
+    if keypress_action.type == KeyPressType.THREE:
+        await page.keyboard.press("3")
+    if keypress_action.type == KeyPressType.FOUR:
+        await page.keyboard.press("4")
+    if keypress_action.type == KeyPressType.FIVE:
+        await page.keyboard.press("5")
+    if keypress_action.type == KeyPressType.SIX:
+        await page.keyboard.press("6")
+    if keypress_action.type == KeyPressType.SEVEN:
+        await page.keyboard.press("7")
+    if keypress_action.type == KeyPressType.EIGHT:
+        await page.keyboard.press("8")
+    if keypress_action.type == KeyPressType.NINE:
+        await page.keyboard.press("9")
+    if keypress_action.type == KeyPressType.SLASH:
+        await page.keyboard.press("/")
+    if keypress_action.type == KeyPressType.SPACE:
+        await page.keyboard.press("Space")

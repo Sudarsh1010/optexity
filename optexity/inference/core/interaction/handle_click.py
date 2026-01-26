@@ -59,8 +59,11 @@ async def click_element_index(
             return
 
         async def _actual_click_element():
+            print(
+                f"Clicking element with index: {index} and button: {click_element_action.button}"
+            )
             action_model = browser.backend_agent.ActionModel(
-                **{"click": {"index": index}}
+                **{"click": {"index": index, "button": click_element_action.button}}
             )
             await browser.backend_agent.multi_act([action_model])
 

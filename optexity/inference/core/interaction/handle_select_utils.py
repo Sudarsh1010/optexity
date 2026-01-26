@@ -60,6 +60,11 @@ async def smart_select(
 
     matched_values = []
 
+    if len(options) == 0:
+        return []
+    if len(options) == 1:
+        return [options[0].value]
+
     for p in patterns:
         # If pattern contains regex characters, treat as regex
         is_regex = p.startswith("^") or p.endswith("$") or ".*" in p

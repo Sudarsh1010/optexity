@@ -1,5 +1,5 @@
 from enum import Enum, unique
-from typing import Literal
+from typing import Any, Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, Field, model_validator
@@ -69,6 +69,10 @@ class UncheckAction(BaseAction):
     pass
 
 
+class HoverAction(BaseAction):
+    pass
+
+
 class SelectOptionAction(BaseAction):
     select_values: list[str]
     expect_download: bool = False
@@ -100,6 +104,7 @@ class ClickElementAction(BaseAction):
     double_click: bool = False
     expect_download: bool = False
     download_filename: str | None = None
+    button: Literal["left", "right", "middle"] = "left"
 
     @model_validator(mode="after")
     def set_download_filename(cls, model: "ClickElementAction"):
@@ -217,10 +222,33 @@ class KeyPressType(str, Enum):
     DELETE = "Delete"
     BACKSPACE = "Backspace"
     ESCAPE = "Escape"
+    ZERO = "0"
+    ONE = "1"
+    TWO = "2"
+    THREE = "3"
+    FOUR = "4"
+    FIVE = "5"
+    SIX = "6"
+    SEVEN = "7"
+    EIGHT = "8"
+    NINE = "9"
+    SLASH = "/"
+    SPACE = "Space"
 
 
 class KeyPressAction(BaseModel):
-    type: KeyPressType
+    type: KeyPressType | Any
+
+    @model_validator(mode="after")
+    def validate_type(self):
+        if self.type is None:
+            raise ValueError("type is required")
+        return self
+
+    def replace(self, pattern: str, replacement: str):
+        if self.type:
+            self.type = self.type.replace(pattern, replacement).strip('"')
+        return self
 
 
 class AgenticTask(BaseModel):
@@ -252,6 +280,7 @@ class InteractionAction(BaseModel):
     select_option: SelectOptionAction | None = None
     check: CheckAction | None = None
     uncheck: UncheckAction | None = None
+    hover: HoverAction | None = None
     download_url_as_pdf: DownloadUrlAsPdfAction | None = None
     scroll: ScrollAction | None = None
     upload_file: UploadFileAction | None = None
@@ -274,6 +303,7 @@ class InteractionAction(BaseModel):
             "select_option": model.select_option,
             "check": model.check,
             "uncheck": model.uncheck,
+            "hover": model.hover,
             "download_url_as_pdf": model.download_url_as_pdf,
             "scroll": model.scroll,
             "upload_file": model.upload_file,
@@ -291,7 +321,7 @@ class InteractionAction(BaseModel):
 
         if len(non_null) != 1:
             raise ValueError(
-                "Exactly one of click_element, input_text, select_option, check, uncheck, download_url_as_pdf, scroll, upload_file, go_to_url, go_back, switch_tab, close_current_tab, close_all_but_last_tab, close_tabs_until, key_press, or agentic_task must be provided"
+                "Exactly one of click_element, input_text, select_option, check, uncheck, hover, download_url_as_pdf, scroll, upload_file, go_to_url, go_back, switch_tab, close_current_tab, close_all_but_last_tab, close_tabs_until, key_press, or agentic_task must be provided"
             )
 
         if (
@@ -314,6 +344,8 @@ class InteractionAction(BaseModel):
             self.check.replace(pattern, replacement)
         if self.uncheck:
             self.uncheck.replace(pattern, replacement)
+        if self.hover:
+            self.hover.replace(pattern, replacement)
         if self.download_url_as_pdf:
             self.download_url_as_pdf.replace(pattern, replacement)
         if self.close_tabs_until:
@@ -326,5 +358,7 @@ class InteractionAction(BaseModel):
             self.go_to_url.replace(pattern, replacement)
         if self.upload_file:
             self.upload_file.replace(pattern, replacement)
+        if self.key_press:
+            self.key_press.replace(pattern, replacement)
 
         return self

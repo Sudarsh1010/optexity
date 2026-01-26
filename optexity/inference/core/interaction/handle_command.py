@@ -13,6 +13,7 @@ from optexity.inference.infra.browser import Browser
 from optexity.schema.actions.interaction_action import (
     CheckAction,
     ClickElementAction,
+    HoverAction,
     InputTextAction,
     SelectOptionAction,
     UncheckAction,
@@ -32,6 +33,7 @@ async def command_based_action_with_retry(
         | CheckAction
         | UploadFileAction
         | UncheckAction
+        | HoverAction
     ),
     browser: Browser,
     memory: Memory,
@@ -102,6 +104,8 @@ async def command_based_action_with_retry(
                     await uncheck_locator(
                         action, locator, max_timeout_seconds_per_try, browser
                     )
+                elif isinstance(action, HoverAction):
+                    await hover_locator(locator, max_timeout_seconds_per_try)
                 elif isinstance(action, UploadFileAction):
                     await upload_file_locator(action, locator)
                 logger.debug(
@@ -149,7 +153,9 @@ async def click_locator(
             )
         else:
             await locator.click(
-                no_wait_after=True, timeout=max_timeout_seconds_per_try * 1000
+                button=click_element_action.button,
+                no_wait_after=True,
+                timeout=max_timeout_seconds_per_try * 1000,
             )
 
     if click_element_action.expect_download:
@@ -209,6 +215,13 @@ async def uncheck_locator(
     await locator.uncheck(
         no_wait_after=True, timeout=max_timeout_seconds_per_try * 1000
     )
+
+
+async def hover_locator(
+    locator: Locator,
+    max_timeout_seconds_per_try: float,
+):
+    await locator.hover(no_wait_after=True, timeout=max_timeout_seconds_per_try * 1000)
 
 
 async def upload_file_locator(upload_file_action: UploadFileAction, locator: Locator):
