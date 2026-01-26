@@ -33,6 +33,7 @@ async def run_two_fa_action(two_fa_action: TwoFAAction, memory: Memory):
 
     elapsed = 0
     messages = None
+    code = None
 
     while elapsed < two_fa_action.max_wait_time:
         messages = await fetch_messages(

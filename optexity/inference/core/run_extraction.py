@@ -11,6 +11,7 @@ from optexity.schema.actions.extraction_action import (
     ExtractionAction,
     LLMExtraction,
     NetworkCallExtraction,
+    PythonScriptExtraction,
     ScreenshotExtraction,
     StateExtraction,
 )
@@ -47,6 +48,14 @@ async def run_extraction_action(
     elif extraction_action.network_call:
         await handle_network_call_extraction(
             extraction_action.network_call,
+            memory,
+            browser,
+            task,
+            extraction_action.unique_identifier,
+        )
+    elif extraction_action.python_script:
+        await handle_python_script_extraction(
+            extraction_action.python_script,
             memory,
             browser,
             task,
@@ -226,6 +235,31 @@ async def handle_network_call_extraction(
                     json_data=network_call.model_dump(include={"body"}),
                 )
             )
+
+
+async def handle_python_script_extraction(
+    python_script_extraction: PythonScriptExtraction,
+    memory: Memory,
+    browser: Browser,
+    task: Task,
+    unique_identifier: str | None = None,
+):
+    local_vars = {}
+    exec(python_script_extraction.script, {}, local_vars)
+    code_fn = local_vars["code_fn"]
+    axtree = memory.browser_states[-1].axtree
+    result = await code_fn(axtree)
+    if result is not None:
+        memory.variables.output_data.append(
+            OutputData(
+                unique_identifier=unique_identifier,
+                json_data=result,
+            )
+        )
+    else:
+        logger.warning(
+            f"No result from Python script extraction: {python_script_extraction.script}"
+        )
 
 
 async def download_request(
