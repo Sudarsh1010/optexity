@@ -62,8 +62,8 @@ class LLMExtraction(BaseModel):
 
 class NetworkCallExtraction(BaseModel):
     url_pattern: Optional[str] = None
-    extract_from: None | Literal["request", "response"] = None
-    download_from: None | Literal["request", "response"] = None
+    extract_from: None | Literal["request", "response"] = "response"
+    download_from: None | Literal["request", "response"] = "response"
     download_filename: str | None = None
 
     @model_validator(mode="before")
