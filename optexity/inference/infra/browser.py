@@ -81,11 +81,11 @@ class Browser:
         self.network_calls: list[NetworkResponse | NetworkRequest] = []
 
         self.extensions = [
-            {
-                "name": "optexity recorder",
-                "id": "pbaganbicadeoacahamnbgohafchgakp",
-                "url": "https://clients2.google.com/service/update2/crx?response=redirect&prodversion=133&acceptformat=crx3&x=id%3Dpbaganbicadeoacahamnbgohafchgakp%26uc",
-            },
+            # {
+            #     "name": "optexity recorder",
+            #     "id": "pbaganbicadeoacahamnbgohafchgakp",
+            #     "url": "https://clients2.google.com/service/update2/crx?response=redirect&prodversion=133&acceptformat=crx3&x=id%3Dpbaganbicadeoacahamnbgohafchgakp%26uc",
+            # },
             {
                 "name": "I still don't care about cookies",
                 "id": "edibdbjcniadpccecjdfdjjppcpchdlm",
@@ -96,11 +96,11 @@ class Browser:
             #     "id": "kiodaajmphnkcajieajajinghpejdjai",
             #     "url": "https://clients2.google.com/service/update2/crx?response=redirect&prodversion=133&acceptformat=crx3&x=id%3Dkiodaajmphnkcajieajajinghpejdjai%26uc",
             # },
-            # {
-            #     "name": "ublock origin",
-            #     "id": "ddkjiahejlhfcafbddmgiahcphecmpfh",
-            #     "url": "https://clients2.google.com/service/update2/crx?response=redirect&prodversion=133&acceptformat=crx3&x=id%3Dddkjiahejlhfcafbddmgiahcphecmpfh%26uc",
-            # },
+            {
+                "name": "ublock origin",
+                "id": "ddkjiahejlhfcafbddmgiahcphecmpfh",
+                "url": "https://clients2.google.com/service/update2/crx?response=redirect&prodversion=133&acceptformat=crx3&x=id%3Dddkjiahejlhfcafbddmgiahcphecmpfh%26uc",
+            },
         ]
 
     async def start(self):
