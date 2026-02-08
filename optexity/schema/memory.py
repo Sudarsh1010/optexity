@@ -49,21 +49,12 @@ class AutomationState(BaseModel):
 
 class SystemInfo(BaseModel):
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    process_memory_usage_mb: float = Field(
-        default_factory=lambda: SystemInfo.get_memory_usage_mb()
-    )
     total_system_memory: float = Field(
         default_factory=lambda: SystemInfo.get_effective_memory_mb()[1]
     )  # convert to MB
     total_system_memory_used: float = Field(
         default_factory=lambda: SystemInfo.get_effective_memory_mb()[0]
     )  # convert to MB
-
-    @staticmethod
-    def get_memory_usage_mb() -> float:
-        process = psutil.Process(os.getpid())
-        mem = process.memory_info().rss  # bytes
-        return mem / (1024**2)  # convert to MB
 
     @staticmethod
     def get_effective_memory_mb():
