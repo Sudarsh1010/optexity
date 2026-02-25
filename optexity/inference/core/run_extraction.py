@@ -333,8 +333,8 @@ async def handle_pdf_extraction(pdf_extraction: PDFExtraction, memory: Memory):
     memory.token_usage += token_usage
     memory.variables.output_data.append(output_data)
 
-    memory.browser_states[-1].final_prompt = (
-        f"{system_instruction}\n{pdf_extraction.extraction_instructions}"
-    )
+    memory.browser_states[
+        -1
+    ].final_prompt = f"{system_instruction}\n{pdf_extraction.extraction_instructions}"
 
     return output_data

@@ -1,20 +1,12 @@
-from .llm_model import GeminiModels, HumanModels, OpenAIModels
+from .registry import MODEL_REGISTRY
+from .llm_model import GeminiModels, ModelEnum
 
 
-def get_llm_model(model_name: GeminiModels | HumanModels | OpenAIModels):
-    if isinstance(model_name, GeminiModels):
-        from .gemini import Gemini
+__all__ = ["GeminiModels"]
 
-        return Gemini(model_name)
 
-    # if isinstance(model_name, OpenAIModels):
-    #     from .openai import OpenAI
-
-    #     return OpenAI(model_name)
-
-    # if isinstance(model_name, HumanModels):
-    #     from .human import HumanModel
-
-    #     return HumanModel(model_name)
-
+def get_llm_model(model_name: ModelEnum):
+    for enum_type, cls in MODEL_REGISTRY.items():
+        if isinstance(model_name, enum_type):
+            return cls(model_name)
     raise ValueError(f"Invalid model type: {model_name}")

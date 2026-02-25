@@ -1,9 +1,11 @@
 import logging
 import time
+from abc import ABC, abstractmethod
 from enum import Enum, unique
+from typing import TypeAlias
 
-from tokencost.costs import calculate_cost_by_tokens
 from pydantic import BaseModel
+from tokencost.costs import calculate_cost_by_tokens
 
 from optexity.schema.token_usage import TokenUsage
 
@@ -32,19 +34,22 @@ class OpenAIModels(Enum):
     GPT_4_1_MINI = "gpt-4.1-mini"
 
 
-class LLMModel:
-    model_name: GeminiModels | HumanModels | OpenAIModels
+ModelEnum: TypeAlias = GeminiModels | HumanModels | OpenAIModels
 
-    def __init__(self, model_name: GeminiModels | HumanModels | OpenAIModels):
+
+class LLMModel(ABC):
+    model_name: ModelEnum
+
+    def __init__(self, model_name: ModelEnum):
         self.model_name = model_name
 
+    @abstractmethod
     def _get_model_response(
         self, prompt: str, system_instruction: str | None = None
     ) -> tuple[str, TokenUsage]:
-        _ = prompt
-        _ = system_instruction
         raise NotImplementedError("This method should be implemented by subclasses.")
 
+    @abstractmethod
     def _get_model_response_with_structured_output(
         self,
         prompt: str,
@@ -53,11 +58,6 @@ class LLMModel:
         pdf_url: str | None = None,
         system_instruction: str | None = None,
     ) -> tuple[BaseModel | None, TokenUsage]:
-        _ = prompt
-        _ = system_instruction
-        _ = response_schema
-        _ = screenshot
-        _ = pdf_url
         raise NotImplementedError("This method should be implemented by subclasses.")
 
     def get_model_response(

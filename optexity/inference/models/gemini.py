@@ -7,10 +7,13 @@ import httpx
 from google import genai
 from google.genai import types
 from pydantic import BaseModel, ValidationError
+from typing_extensions import override
 
+from optexity.schema.token_usage import TokenUsage
 from optexity.utils.utils import is_local_path, is_url
 
-from .llm_model import GeminiModels, LLMModel, TokenUsage
+from .llm_model import GeminiModels, LLMModel
+from .registry import register_model
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +26,10 @@ class Gemini(LLMModel):
         try:
             self.client = genai.Client(api_key=self.api_key)
             self.client.models.list()
-        except Exception as e:
+        except Exception:
             raise ValueError("Invalid GOOGLE_API_KEY")
 
+    @override
     def _get_model_response_with_structured_output(
         self,
         prompt: str,
@@ -103,6 +107,7 @@ class Gemini(LLMModel):
 
         return parsed_response, token_usage
 
+    @override
     def _get_model_response(
         self, prompt: str, system_instruction: str | None = None
     ) -> tuple[str, TokenUsage]:
@@ -120,3 +125,6 @@ class Gemini(LLMModel):
         else:
             token_usage = TokenUsage()
         return str(response.candidates[0].content.parts[0].text), token_usage
+
+
+register_model(GeminiModels, Gemini)
